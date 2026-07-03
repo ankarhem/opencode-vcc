@@ -1,9 +1,9 @@
 import { describe, it, expect } from "bun:test";
 import {
-  createPiVccCommandHook,
-  piVccCommandConfig,
-  PI_VCC_COMMAND,
-} from "../src/commands/pi-vcc";
+  createVccCommandHook,
+  vccCommandConfig,
+  VCC_COMMAND,
+} from "../src/commands/vcc";
 import type { PendingRequest } from "../src/hooks/compaction";
 
 interface Recorded {
@@ -26,11 +26,11 @@ const mkHarness = () => {
       },
     },
   };
-  const hook = createPiVccCommandHook(deps, setPending);
+  const hook = createVccCommandHook(deps, setPending);
   return { recorded, hook };
 };
 
-const runPiVcc = async (
+const runVcc = async (
   hook: ReturnType<typeof mkHarness>["hook"],
   args: string,
 ) => {
@@ -38,16 +38,16 @@ const runPiVcc = async (
     parts: [{ type: "text", text: "orig" }],
   };
   await hook(
-    { command: PI_VCC_COMMAND, sessionID: "s1", arguments: args },
+    { command: VCC_COMMAND, sessionID: "s1", arguments: args },
     output,
   );
   return output;
 };
 
-describe("/pi-vcc command hook", () => {
+describe("/vcc command hook", () => {
   it("bare invocation: keepN null, no follow-up, blanks parts, triggers summarize", async () => {
     const { recorded, hook } = mkHarness();
-    const output = await runPiVcc(hook, "");
+    const output = await runVcc(hook, "");
     expect(recorded.pending).toHaveLength(1);
     expect(recorded.pending[0]?.request.keepN).toBeNull();
     expect(recorded.pending[0]?.request.followUpPrompt).toBeUndefined();
@@ -57,13 +57,13 @@ describe("/pi-vcc command hook", () => {
 
   it("keep:N prefix parsed into pending", async () => {
     const { recorded, hook } = mkHarness();
-    await runPiVcc(hook, "keep:3");
+    await runVcc(hook, "keep:3");
     expect(recorded.pending[0]?.request.keepN).toBe(3);
   });
 
   it("keep:N prefix + follow-up prompt", async () => {
     const { recorded, hook } = mkHarness();
-    await runPiVcc(hook, "keep:2 continue the refactor");
+    await runVcc(hook, "keep:2 continue the refactor");
     expect(recorded.pending[0]?.request.keepN).toBe(2);
     expect(recorded.pending[0]?.request.followUpPrompt).toBe(
       "continue the refactor",
@@ -72,12 +72,12 @@ describe("/pi-vcc command hook", () => {
 
   it("trailing keep:N token", async () => {
     const { recorded, hook } = mkHarness();
-    await runPiVcc(hook, "do the thing keep:1");
+    await runVcc(hook, "do the thing keep:1");
     expect(recorded.pending[0]?.request.keepN).toBe(1);
     expect(recorded.pending[0]?.request.followUpPrompt).toBe("do the thing");
   });
 
-  it("ignores commands other than pi-vcc", async () => {
+  it("ignores commands other than vcc", async () => {
     const { recorded, hook } = mkHarness();
     const output: { parts: unknown[] } = {
       parts: [{ type: "text", text: "orig" }],
@@ -92,6 +92,6 @@ describe("/pi-vcc command hook", () => {
   });
 
   it("config entry has a description", () => {
-    expect(piVccCommandConfig.description).toContain("Compact");
+    expect(vccCommandConfig.description).toContain("Compact");
   });
 });

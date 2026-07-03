@@ -60,7 +60,7 @@ plugin.
 
 ## Commands
 
-### `/pi-vcc [keep:N] [follow-up prompt]`
+### `/vcc [keep:N] [follow-up prompt]`
 
 Compact the conversation **now** using the algorithmic summarizer.
 
@@ -72,13 +72,13 @@ Compact the conversation **now** using the algorithmic summarizer.
 Examples:
 
 ```
-/pi-vcc
-/pi-vcc keep:3
-/pi-vcc keep:2 continue implementing the parser
-/pi-vcc summarize what's left keep:1
+/vcc
+/vcc keep:3
+/vcc keep:2 continue implementing the parser
+/vcc summarize what's left keep:1
 ```
 
-### `/pi-vcc-recall <query> [page:N] [scope:all]`
+### `/vcc-recall <query> [page:N] [scope:all]`
 
 Search the full session history and feed the results to the agent as a new turn.
 
@@ -112,10 +112,10 @@ Modes:
 Settings resolve with the precedence **env > plugin options > sidecar file >
 defaults**.
 
-| Key                         | Default | Meaning                                                                                                             |
-| --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `overrideDefaultCompaction` | `false` | When `true`, opencode-vcc handles **all** compactions (including `/compact` and auto-overflow), not just `/pi-vcc`. |
-| `debug`                     | `false` | Write a diagnostic snapshot to `/tmp/opencode-vcc-debug.json` on each compaction.                                   |
+| Key                         | Default | Meaning                                                                                                          |
+| --------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `overrideDefaultCompaction` | `false` | When `true`, opencode-vcc handles **all** compactions (including `/compact` and auto-overflow), not just `/vcc`. |
+| `debug`                     | `false` | Write a diagnostic snapshot to `/tmp/opencode-vcc-debug.json` on each compaction.                                |
 
 - **Plugin options** — the second element of a `["opencode-vcc", { ... }]` entry
   in `opencode.json`.

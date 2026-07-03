@@ -26,7 +26,7 @@ const runRecall = async (messages: HistoryEntry[], args: string) => {
   return output;
 };
 
-describe("/pi-vcc-recall command hook", () => {
+describe("/vcc-recall command hook", () => {
   it("rewrites parts to a single text part with the recall output", async () => {
     const output = await runRecall(
       [
@@ -67,7 +67,7 @@ describe("/pi-vcc-recall command hook", () => {
     expect(part.text).toContain("Page 2/2");
   });
 
-  it("ignores commands other than pi-vcc-recall", async () => {
+  it("ignores commands other than vcc-recall", async () => {
     const hook = createVccRecallCommandHook(mkDeps([userEntry("u0", "hi")]));
     const output: { parts: unknown[] } = {
       parts: [{ type: "text", text: "x" }],

@@ -63,8 +63,8 @@ describe("VccPlugin entry", () => {
     const hooks = await VccPlugin(fakeInput(), {});
     const config: { command?: Record<string, unknown> } = {};
     await hooks.config?.(config as never);
-    expect(config.command?.["pi-vcc"]).toBeDefined();
-    expect(config.command?.["pi-vcc-recall"]).toBeDefined();
+    expect(config.command?.["vcc"]).toBeDefined();
+    expect(config.command?.["vcc-recall"]).toBeDefined();
   });
 
   it("threads plugin options into settings (overrideDefaultCompaction)", async () => {

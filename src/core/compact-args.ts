@@ -13,7 +13,7 @@ const parseKeepUserTurns = (raw: string): number => {
 };
 
 /**
- * Parse the argument string passed to the `/pi-vcc` command.
+ * Parse the argument string passed to the `/vcc` command.
  *
  * Grammar (whitespace-separated tokens):
  *   - empty             → all defaults (no keep, no follow-up)

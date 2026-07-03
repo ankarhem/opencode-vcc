@@ -1,6 +1,6 @@
 import type { RecallScope } from "./recall-scope";
 
-/** Default scope for `vcc_recall` / `/pi-vcc-recall` when none is specified. */
+/** Default scope for `vcc_recall` / `/vcc-recall` when none is specified. */
 export const DEFAULT_RECALL_SCOPE: RecallScope = "lineage";
 
 export interface SessionLike {

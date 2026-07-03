@@ -3,10 +3,10 @@ import type { HistoryEntry } from "./core/render-entries";
 import { loadSettings, scaffoldSettings } from "./core/settings";
 import { createCompactionHooks } from "./hooks/compaction";
 import {
-  createPiVccCommandHook,
-  piVccCommandConfig,
-  PI_VCC_COMMAND,
-} from "./commands/pi-vcc";
+  createVccCommandHook,
+  vccCommandConfig,
+  VCC_COMMAND,
+} from "./commands/vcc";
 import {
   createVccRecallCommandHook,
   vccRecallCommandConfig,
@@ -82,7 +82,7 @@ export const VccPlugin: Plugin = async (input, options) => {
     settings,
   });
 
-  const piVccHook = createPiVccCommandHook(
+  const vccHook = createVccCommandHook(
     {
       client: {
         session: { summarize: client.session.summarize.bind(client.session) },
@@ -98,14 +98,14 @@ export const VccPlugin: Plugin = async (input, options) => {
   return {
     config: async (config: { command?: Record<string, unknown> }) => {
       config.command = config.command ?? {};
-      config.command[PI_VCC_COMMAND] ??= piVccCommandConfig;
+      config.command[VCC_COMMAND] ??= vccCommandConfig;
       config.command[VCC_RECALL_COMMAND] ??= vccRecallCommandConfig;
     },
     "command.execute.before": async (
       cmdInput: { command: string; sessionID: string; arguments: string },
       output: { parts: unknown[] },
     ) => {
-      await piVccHook(cmdInput, output);
+      await vccHook(cmdInput, output);
       await recallCommandHook(cmdInput, output);
     },
     "experimental.session.compacting":

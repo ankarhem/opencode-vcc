@@ -12,21 +12,21 @@ export interface VccRecallCommandDeps {
   };
 }
 
-export const VCC_RECALL_COMMAND = "pi-vcc-recall";
+export const VCC_RECALL_COMMAND = "vcc-recall";
 
 const PAGE_SIZE = 5;
 const DEFAULT_RECENT = 25;
 const PAGE_RE = /\bpage:(\d+)\b/i;
 
-/** Config entry registering the /pi-vcc-recall slash command. */
+/** Config entry registering the /vcc-recall slash command. */
 export const vccRecallCommandConfig = {
   template: " ",
   description:
-    "Search session history. Usage: /pi-vcc-recall <query> [page:N] [scope:all]",
+    "Search session history. Usage: /vcc-recall <query> [page:N] [scope:all]",
 };
 
 /**
- * Build the recall output text for a /pi-vcc-recall invocation. Extracted so it
+ * Build the recall output text for a /vcc-recall invocation. Extracted so it
  * is unit-testable without the hook plumbing.
  */
 export const buildRecallCommandOutput = (
@@ -57,15 +57,15 @@ export const buildRecallCommandOutput = (
       : `${all.length} matches${scopeNote}`;
   const footer =
     page < totalPages
-      ? `\n--- /pi-vcc-recall ${query}${scope === "all" ? " scope:all" : ""} page:${page + 1} ---`
+      ? `\n--- /vcc-recall ${query}${scope === "all" ? " scope:all" : ""} page:${page + 1} ---`
       : "";
   return formatRecallOutput(pageResults, query, header) + footer;
 };
 
 /**
- * command.execute.before handler for /pi-vcc-recall: run the search and rewrite
+ * command.execute.before handler for /vcc-recall: run the search and rewrite
  * the command's parts to a text part, so the result is fed to the agent as a
- * fresh turn (mirrors pi-vcc's triggerTurn behavior).
+ * fresh turn (mirrors the upstream triggerTurn behavior).
  */
 export const createVccRecallCommandHook =
   (deps: VccRecallCommandDeps) =>
