@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # create GitHub Release
-      id-token: write # npm provenance (--provenance)
+      id-token: write # npm OIDC trusted publishing + FlakeHub Cache
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +30,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v16
 
       - name: Nix cache
-        uses: DeterminateSystems/flakehub-cache-action@v9
+        uses: DeterminateSystems/flakehub-cache-action@v3
 
       - name: Derive version from tag
         id: version
@@ -56,17 +56,7 @@ jobs:
       - name: Install dependencies
         run: nix develop --command bun install --frozen-lockfile
 
-      - name: Configure npm auth
-        run: |
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "::error::NPM_TOKEN secret is not set. Add it in repo Settings → Secrets → Actions."
-            exit 1
-          fi
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >"$HOME/.npmrc"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish to npm
+      - name: Publish to npm (OIDC trusted publishing — no token)
         run: nix develop --command npm publish --provenance --access public --tag "${{ steps.version.outputs.npm_tag }}"
 
       - name: Create GitHub Release

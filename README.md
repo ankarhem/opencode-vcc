@@ -171,13 +171,14 @@ Releases are **tag-driven** — the git tag is the source of truth for the versi
    - re-runs the full CI gate,
    - sets `package.json` version from the tag,
    - publishes to npm (`latest` for releases, `next` for prereleases) with
-     provenance,
+     provenance, **tokenlessly via OIDC trusted publishing**,
    - creates a GitHub Release with auto-generated notes.
 
-Prerequisite: add an `NPM_TOKEN` repository secret
-(Settings → Secrets and variables → Actions) with publish rights to the
-`opencode-vcc` package. You do **not** commit a version bump — the workflow
-derives it from the tag.
+Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+(OIDC) — no `NPM_TOKEN` secret is stored. The `opencode-vcc` package must exist
+on npm (the first publish is done manually) and have a trusted publisher
+configured for this repo's `release.yml` workflow. You do **not** commit a
+version bump — the workflow derives it from the tag.
 
 ## License
 
