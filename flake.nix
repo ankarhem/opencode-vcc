@@ -46,6 +46,7 @@
               [
                 nodejs
                 bun
+                just
               ]
               ++ config.pre-commit.settings.enabledPackages;
           };
