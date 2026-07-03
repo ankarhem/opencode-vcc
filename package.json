@@ -1,0 +1,41 @@
+{
+  "name": "opencode-vcc",
+  "version": "0.1.0",
+  "description": "Algorithmic conversation compactor for opencode - transcript-preserving structured summaries with lossless recall (port of pi-vcc)",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "vcc",
+    "compact",
+    "compaction"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankarhem/opencode-vcc.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.17.13",
+    "@types/bun": "^1.2.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "zod": "^3.24.0"
+  }
+}

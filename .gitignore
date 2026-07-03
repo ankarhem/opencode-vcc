@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Build output
+dist/
+
+# Debug dumps (opencode-vcc writes diagnostic JSON here when debug:true)
+/opencode-vcc-debug.json
+/pi-vcc-debug.json
+
+# Editor / OS
+.DS_Store
+*.log
+
+# opencode local plugin testing
+.opencode/plugins/*.symlink
