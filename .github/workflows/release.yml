@@ -25,7 +25,7 @@ jobs:
       contents: write # create GitHub Release
       id-token: write # npm OIDC trusted publishing + FlakeHub Cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v16
