@@ -29,6 +29,23 @@ an LLM call. opencode-vcc therefore uses the **echo + overwrite** strategy:
 > is the price of not reimplementing opencode's compaction bookkeeping. The
 > summary content itself is 100% algorithmic.
 
+### Default compaction is augmented, not replaced
+
+When you do **not** use `/vcc` (and `overrideDefaultCompaction` is off), opencode
+runs its normal LLM compaction. In that case opencode-vcc leaves the LLM's
+narrative summary intact and simply **appends the recall note** to it, so the
+agent learns the `vcc_recall` tool exists and can recover any pre-compaction
+detail losslessly. This is always on, adds no LLM cost, and is hard-gated to
+genuine compaction summaries (`info.summary === true && info.agent ===
+"compaction"`) — ordinary chat text is never touched.
+
+So there are two levels:
+
+- **Default** — opencode's LLM summary + appended recall note (best of both:
+  narrative synthesis _and_ a lossless recovery path).
+- **`/vcc` (or `overrideDefaultCompaction: true`)** — fully deterministic,
+  hallucination-free algorithmic summary that replaces the LLM summary.
+
 ### `keep:N` is advisory
 
 In pi-vcc, `keep:N` controls exactly how many trailing user turns stay

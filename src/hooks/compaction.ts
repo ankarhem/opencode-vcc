@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 
 import { compile } from "../core/summarize";
+import { RECALL_NOTE } from "../core/format";
 import { textOf } from "../core/render-entries";
 import type { HistoryEntry } from "../core/render-entries";
 import type { VccSettings } from "../core/settings";
@@ -105,6 +106,9 @@ export function createCompactionHooks(
   const debugWrite = deps.debugWrite ?? defaultDebugWrite;
   const pending = new Map<string, PendingEntry>();
   const computed = new Map<string, ComputedEntry>();
+  // Sessions we already handled+cleared; blocks augmentNativeSummary from
+  // re-touching an already-processed compaction. TTL-evicted like pending.
+  const finalized = new Map<string, number>();
 
   /** Drop entries whose pending request has aged past the TTL. */
   const evictStale = (): void => {
@@ -114,6 +118,9 @@ export function createCompactionHooks(
         pending.delete(id);
         computed.delete(id);
       }
+    }
+    for (const [id, at] of finalized) {
+      if (at < cutoff) finalized.delete(id);
     }
   };
 
@@ -130,6 +137,7 @@ export function createCompactionHooks(
   const clear = (sessionID: string): void => {
     pending.delete(sessionID);
     computed.delete(sessionID);
+    finalized.set(sessionID, now());
   };
 
   const setPending = (sessionID: string, request: PendingRequest): void => {
@@ -198,12 +206,34 @@ export function createCompactionHooks(
     });
   };
 
+  // Default-compaction path: append RECALL_NOTE to opencode's own LLM summary.
+  // GATE: only genuine compaction summaries (info.summary && agent==="compaction")
+  // so ordinary chat text is never touched. Idempotent.
+  const augmentNativeSummary = async (
+    input: { sessionID: string; messageID: string },
+    output: { text: string },
+  ): Promise<void> => {
+    if (finalized.has(input.sessionID)) return;
+    if (output.text.includes(RECALL_NOTE)) return;
+    const messages = await deps.client.session.messages({
+      path: { id: input.sessionID },
+    });
+    const msg = messages.find((m) => m.info.id === input.messageID);
+    if (!msg) return;
+    if (msg.info.summary !== true || msg.info.agent !== "compaction") return;
+
+    output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
+  };
+
   const textComplete = async (
     input: { sessionID: string; messageID: string; partID: string },
     output: { text: string },
   ): Promise<void> => {
     const c = computed.get(input.sessionID);
-    if (!c) return; // don't touch non-pending sessions
+    if (!c) {
+      await augmentNativeSummary(input, output);
+      return;
+    }
     // HARD GATE: only overwrite the recorded compaction summary message, never
     // ordinary chat text. This is the critical safety property.
     if (!c.summaryMsgIds.has(input.messageID)) return;

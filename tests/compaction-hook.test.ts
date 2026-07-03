@@ -10,6 +10,7 @@ import {
 } from "../src/core/report";
 import type { HistoryEntry } from "../src/core/render-entries";
 import { DEFAULT_SETTINGS, type VccSettings } from "../src/core/settings";
+import { RECALL_NOTE } from "../src/core/format";
 
 // ── fixtures (explicit ids + summary flags the hook logic gates on) ──
 const userEntry = (id: string, text: string): HistoryEntry => ({
@@ -364,6 +365,68 @@ describe("createCompactionHooks - TTL eviction", () => {
     const output = emptyOutput();
     await hooks["experimental.session.compacting"]({ sessionID: "s1" }, output);
     expect(output.prompt).toBe("Reply with exactly: OK");
+  });
+});
+
+describe("createCompactionHooks - augments default LLM compaction", () => {
+  it("appends RECALL_NOTE to an LLM compaction summary we did not compute", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+    const out = {
+      text: "The user asked to fix the login bug; auth flow inspected.",
+    };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      out,
+    );
+    expect(out.text).toContain("The user asked to fix the login bug");
+    expect(out.text).toContain(RECALL_NOTE);
+    expect(out.text.endsWith(RECALL_NOTE)).toBe(true);
+  });
+
+  it("does NOT append to ordinary (non-summary) assistant text", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+    const out = { text: "just a normal reply" };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "a1", partID: "p" },
+      out,
+    );
+    expect(out.text).toBe("just a normal reply");
+  });
+
+  it("does NOT double-append when we already computed our own summary", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+    hooks.setPending("s1", { keepN: null });
+    await hooks["experimental.session.compacting"](
+      { sessionID: "s1" },
+      emptyOutput(),
+    );
+    const out = { text: "OK" };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      out,
+    );
+    expect(out.text).toContain("[Session Goal]");
+    // compile() line-wraps RECALL_NOTE; count a marker that survives wrapping.
+    const occurrences = out.text.split("vcc_recall").length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("does not append twice if text.complete fires again for the same summary", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+    const out = { text: "LLM summary body." };
+    const call = () =>
+      hooks["experimental.text.complete"](
+        { sessionID: "s1", messageID: "sum_new", partID: "p" },
+        out,
+      );
+    await call();
+    await call();
+    const occurrences = out.text.split(RECALL_NOTE).length - 1;
+    expect(occurrences).toBe(1);
   });
 });
 
