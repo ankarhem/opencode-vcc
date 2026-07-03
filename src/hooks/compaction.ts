@@ -15,7 +15,7 @@ export interface CompactionHookDeps {
   client: {
     session: {
       messages(args: { path: { id: string } }): Promise<HistoryEntry[]>;
-      prompt(content: string): Promise<unknown>;
+      prompt(sessionID: string, content: string): Promise<unknown>;
     };
     tui: {
       showToast(args: {
@@ -223,7 +223,7 @@ export function createCompactionHooks(
 
     if (followUpPrompt) {
       try {
-        await deps.client.session.prompt(followUpPrompt);
+        await deps.client.session.prompt(input.sessionID, followUpPrompt);
       } catch {
         // follow-up is fire-and-forget
       }

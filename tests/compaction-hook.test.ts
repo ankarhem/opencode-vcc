@@ -64,7 +64,7 @@ function makeHarness(opts: {
           counters.messages += 1;
           return opts.messages;
         },
-        prompt: async (content: string) => {
+        prompt: async (_sessionID: string, content: string) => {
           prompts.push(content);
           return undefined;
         },
