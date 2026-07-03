@@ -22,6 +22,15 @@
     "url": "git+https://github.com/ankarhem/opencode-vcc.git"
   },
   "license": "MIT",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit"

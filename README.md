@@ -136,6 +136,32 @@ just typecheck
 Formatting is handled entirely by `nix fmt` (treefmt: prettier + nixfmt). Run
 `just validate` before committing.
 
+CI (`.github/workflows/ci.yml`) runs `just ci` (format check + typecheck +
+tests) on every push and pull request.
+
+## Releasing
+
+Releases are **tag-driven** — the git tag is the source of truth for the version.
+
+1. Push an annotated tag matching `vX.Y.Z` (or a prerelease like `vX.Y.Z-rc.1`):
+
+   ```
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+2. `.github/workflows/release.yml` then:
+   - re-runs the full CI gate,
+   - sets `package.json` version from the tag,
+   - publishes to npm (`latest` for releases, `next` for prereleases) with
+     provenance,
+   - creates a GitHub Release with auto-generated notes.
+
+Prerequisite: add an `NPM_TOKEN` repository secret
+(Settings → Secrets and variables → Actions) with publish rights to the
+`opencode-vcc` package. You do **not** commit a version bump — the workflow
+derives it from the tag.
+
 ## License
 
 MIT
