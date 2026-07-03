@@ -16,7 +16,11 @@ const entries: RenderedEntry[] = [
   { index: 0, role: "user", summary: "Fix login bug" },
   { index: 1, role: "assistant", summary: "Reading auth.ts" },
   { index: 2, role: "assistant", summary: "[Read] code here" },
-  { index: 3, role: "assistant", summary: "Found the root cause in auth module" },
+  {
+    index: 3,
+    role: "assistant",
+    summary: "Found the root cause in auth module",
+  },
 ];
 
 const messages: HistoryEntry[] = [
@@ -44,7 +48,9 @@ describe("searchEntries", () => {
 
   it("finds keyword beyond clip boundary in full content", () => {
     const longText = "A".repeat(400) + " hidden_keyword here";
-    const longEntries: RenderedEntry[] = [{ index: 0, role: "user", summary: "A".repeat(300) }];
+    const longEntries: RenderedEntry[] = [
+      { index: 0, role: "user", summary: "A".repeat(300) },
+    ];
     const longMsgs: HistoryEntry[] = [userEntry(longText)];
     const r = searchEntries(longEntries, longMsgs, "hidden_keyword");
     expect(r).toHaveLength(1);
@@ -101,7 +107,9 @@ describe("searchEntries", () => {
 
   it("natural language ranks by BM25 score", () => {
     const r = searchEntries(entries, messages, "root cause auth");
-    expect(r[0]?.matchCount!).toBeGreaterThanOrEqual(r[r.length - 1]?.matchCount!);
+    expect(r[0]?.matchCount!).toBeGreaterThanOrEqual(
+      r[r.length - 1]?.matchCount!,
+    );
   });
 
   it("filters stopwords from queries", () => {

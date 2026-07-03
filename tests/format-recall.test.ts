@@ -13,13 +13,17 @@ describe("formatRecallOutput", () => {
   });
 
   it("formats entries with index and role", () => {
-    const entries: RenderedEntry[] = [{ index: 0, role: "user", summary: "hello" }];
+    const entries: RenderedEntry[] = [
+      { index: 0, role: "user", summary: "hello" },
+    ];
     const r = formatRecallOutput(entries);
     expect(r).toContain("#0 [user] hello");
   });
 
   it("shows match count with query", () => {
-    const entries: RenderedEntry[] = [{ index: 2, role: "assistant", summary: "done" }];
+    const entries: RenderedEntry[] = [
+      { index: 2, role: "assistant", summary: "done" },
+    ];
     const r = formatRecallOutput(entries, "done");
     expect(r).toContain('Found 1 matches for "done"');
   });

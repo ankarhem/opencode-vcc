@@ -26,13 +26,17 @@ const ENV_DEBUG = "OPENCODE_VCC_DEBUG";
 
 /** Resolve the sidecar config path: env override, else the opencode config default. */
 export function settingsPath(): string {
-  return process.env[ENV_PATH] ?? join(homedir(), ".config", "opencode", "opencode-vcc.json");
+  return (
+    process.env[ENV_PATH] ??
+    join(homedir(), ".config", "opencode", "opencode-vcc.json")
+  );
 }
 
 function readJson(path: string): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf-8"));
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return null;
     return parsed as Record<string, unknown>;
   } catch {
     return null;

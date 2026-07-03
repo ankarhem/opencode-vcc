@@ -5,9 +5,18 @@ import type { HistoryEntry } from "../src/core/render-entries";
 describe("loadAllMessages", () => {
   it("loads all message entries when no lineage filter is provided", () => {
     const history: HistoryEntry[] = [
-      { info: { id: "m1", role: "user" }, parts: [{ type: "text", text: "u1" }] },
-      { info: { id: "m2", role: "assistant" }, parts: [{ type: "text", text: "a1" }] },
-      { info: { id: "m3", role: "user" }, parts: [{ type: "text", text: "u2" }] },
+      {
+        info: { id: "m1", role: "user" },
+        parts: [{ type: "text", text: "u1" }],
+      },
+      {
+        info: { id: "m2", role: "assistant" },
+        parts: [{ type: "text", text: "a1" }],
+      },
+      {
+        info: { id: "m3", role: "user" },
+        parts: [{ type: "text", text: "u2" }],
+      },
     ];
 
     const loaded = loadAllMessages(history, false);
@@ -18,9 +27,18 @@ describe("loadAllMessages", () => {
 
   it("filters messages by allowed lineage entry IDs and preserves original message index", () => {
     const history: HistoryEntry[] = [
-      { info: { id: "m1", role: "user" }, parts: [{ type: "text", text: "u1" }] },
-      { info: { id: "m2", role: "assistant" }, parts: [{ type: "text", text: "a1" }] },
-      { info: { id: "m3", role: "user" }, parts: [{ type: "text", text: "u2" }] },
+      {
+        info: { id: "m1", role: "user" },
+        parts: [{ type: "text", text: "u1" }],
+      },
+      {
+        info: { id: "m2", role: "assistant" },
+        parts: [{ type: "text", text: "a1" }],
+      },
+      {
+        info: { id: "m3", role: "user" },
+        parts: [{ type: "text", text: "u2" }],
+      },
     ];
 
     const loaded = loadAllMessages(history, false, new Set(["m2"]));

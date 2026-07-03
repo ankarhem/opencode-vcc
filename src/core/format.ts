@@ -13,7 +13,9 @@ const wrapLine = (line: string, maxChars: number): string[] => {
   if (line.length <= maxChars) return [line];
 
   const indent = line.match(/^\s*(?:[-*]\s+|\d+\.\s+)?/)?.[0] ?? "";
-  const continuationIndent = indent ? " ".repeat(Math.min(indent.length, 8)) : "";
+  const continuationIndent = indent
+    ? " ".repeat(Math.min(indent.length, 8))
+    : "";
   const wrapped: string[] = [];
   let remaining = line;
   let prefix = "";
@@ -32,7 +34,10 @@ const wrapLine = (line: string, maxChars: number): string[] => {
   return wrapped;
 };
 
-export const wrapLongLines = (text: string, maxChars = TUI_SAFE_LINE_CHARS): string =>
+export const wrapLongLines = (
+  text: string,
+  maxChars = TUI_SAFE_LINE_CHARS,
+): string =>
   text
     .split("\n")
     .flatMap((line) => wrapLine(line, maxChars))

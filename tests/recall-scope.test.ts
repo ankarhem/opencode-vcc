@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import { normalizeRecallScope, parseRecallScope } from "../src/core/recall-scope";
+import {
+  normalizeRecallScope,
+  parseRecallScope,
+} from "../src/core/recall-scope";
 
 describe("normalizeRecallScope", () => {
   it("defaults to active lineage", () => {

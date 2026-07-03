@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -51,7 +57,9 @@ describe("settingsPath", () => {
   test("falls back to ~/.config/opencode/opencode-vcc.json default", () => {
     delete process.env[ENV_PATH];
     const p = settingsPath();
-    expect(p.endsWith(join(".config", "opencode", "opencode-vcc.json"))).toBe(true);
+    expect(p.endsWith(join(".config", "opencode", "opencode-vcc.json"))).toBe(
+      true,
+    );
   });
 });
 
@@ -62,8 +70,14 @@ describe("loadSettings precedence", () => {
   });
 
   test("sidecar file values override defaults", () => {
-    writeFileSync(cfgPath, JSON.stringify({ overrideDefaultCompaction: true, debug: true }));
-    expect(loadSettings()).toEqual({ overrideDefaultCompaction: true, debug: true });
+    writeFileSync(
+      cfgPath,
+      JSON.stringify({ overrideDefaultCompaction: true, debug: true }),
+    );
+    expect(loadSettings()).toEqual({
+      overrideDefaultCompaction: true,
+      debug: true,
+    });
   });
 
   test("ignores invalid JSON file, returns defaults", () => {
@@ -72,7 +86,10 @@ describe("loadSettings precedence", () => {
   });
 
   test("plugin options (present keys) override sidecar", () => {
-    writeFileSync(cfgPath, JSON.stringify({ overrideDefaultCompaction: true, debug: false }));
+    writeFileSync(
+      cfgPath,
+      JSON.stringify({ overrideDefaultCompaction: true, debug: false }),
+    );
     expect(loadSettings({ overrideDefaultCompaction: false })).toEqual({
       overrideDefaultCompaction: false,
       debug: false,
@@ -80,13 +97,21 @@ describe("loadSettings precedence", () => {
   });
 
   test("absent option keys fall through to sidecar", () => {
-    writeFileSync(cfgPath, JSON.stringify({ overrideDefaultCompaction: true, debug: true }));
-    expect(loadSettings({})).toEqual({ overrideDefaultCompaction: true, debug: true });
+    writeFileSync(
+      cfgPath,
+      JSON.stringify({ overrideDefaultCompaction: true, debug: true }),
+    );
+    expect(loadSettings({})).toEqual({
+      overrideDefaultCompaction: true,
+      debug: true,
+    });
   });
 
   test("non-boolean option values are ignored", () => {
     writeFileSync(cfgPath, JSON.stringify({ debug: true }));
-    expect(loadSettings({ debug: "yes" as unknown as boolean }).debug).toBe(true);
+    expect(loadSettings({ debug: "yes" as unknown as boolean }).debug).toBe(
+      true,
+    );
   });
 
   test("env OPENCODE_VCC_DEBUG='1' overrides options AND sidecar", () => {
@@ -108,7 +133,10 @@ describe("loadSettings precedence", () => {
   });
 
   test("full chain: env > options > sidecar > defaults", () => {
-    writeFileSync(cfgPath, JSON.stringify({ overrideDefaultCompaction: true, debug: false }));
+    writeFileSync(
+      cfgPath,
+      JSON.stringify({ overrideDefaultCompaction: true, debug: false }),
+    );
     process.env[ENV_DEBUG] = "true";
     // sidecar: override=true, debug=false; options flips override to false; env flips debug to true
     expect(loadSettings({ overrideDefaultCompaction: false })).toEqual({

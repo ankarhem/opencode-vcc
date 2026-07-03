@@ -104,7 +104,10 @@ describe("renderMessage", () => {
   });
 
   it("handles assistant message with no parts", () => {
-    const entry: HistoryEntry = { info: { id: "a7", role: "assistant" }, parts: [] };
+    const entry: HistoryEntry = {
+      info: { id: "a7", role: "assistant" },
+      parts: [],
+    };
     const r = renderMessage(entry, 3);
     expect(r.role).toBe("assistant");
     expect(r.summary).toBe("");

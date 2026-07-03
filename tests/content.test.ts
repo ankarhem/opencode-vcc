@@ -73,12 +73,16 @@ describe("clipSentence", () => {
 
   it("cuts at the last sentence boundary within [max*0.5, max]", () => {
     // period at index 10 -> end 11 >= max*0.5 (10), so it snaps to the sentence end
-    expect(clipSentence("AAAAAAAAAA. BBBBBB CCCCCC DDDDDD EEEEEE FFFFFF", 20)).toBe("AAAAAAAAAA.");
+    expect(
+      clipSentence("AAAAAAAAAA. BBBBBB CCCCCC DDDDDD EEEEEE FFFFFF", 20),
+    ).toBe("AAAAAAAAAA.");
   });
 
   it("falls back to clip() when no sentence end is in the acceptable window", () => {
     // last sentence end (index 8 -> end 9) is below max*0.5 (10), so falls back to clip
-    expect(clipSentence("One. Two. Three four five six.", 20)).toBe("One. Two. Three four");
+    expect(clipSentence("One. Two. Three four five six.", 20)).toBe(
+      "One. Two. Three four",
+    );
   });
 });
 
@@ -108,7 +112,9 @@ describe("snippet", () => {
   });
 
   it("wraps the match with ... prefix and suffix", () => {
-    expect(snippet("the quick brown fox jumps", "brown", 3)).toBe("...ck brown fo...");
+    expect(snippet("the quick brown fox jumps", "brown", 3)).toBe(
+      "...ck brown fo...",
+    );
   });
 
   it("omits the prefix when the match is at the start", () => {

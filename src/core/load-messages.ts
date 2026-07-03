@@ -1,4 +1,8 @@
-import { renderMessage, type RenderedEntry, type HistoryEntry } from "./render-entries";
+import {
+  renderMessage,
+  type RenderedEntry,
+  type HistoryEntry,
+} from "./render-entries";
 
 export interface LoadedMessages {
   rendered: RenderedEntry[];

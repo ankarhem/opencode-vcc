@@ -26,8 +26,11 @@ export const getLineageEntryIds = (sessions: SessionLike[]): Set<string> => {
     return new Set(sessions.map((s) => s.id));
   }
 
-  const parentIds = new Set(sessions.map((s) => s.parentID).filter((p): p is string => Boolean(p)));
-  const leaf = sessions.find((s) => !parentIds.has(s.id)) ?? sessions[sessions.length - 1];
+  const parentIds = new Set(
+    sessions.map((s) => s.parentID).filter((p): p is string => Boolean(p)),
+  );
+  const leaf =
+    sessions.find((s) => !parentIds.has(s.id)) ?? sessions[sessions.length - 1];
 
   const byId = new Map(sessions.map((s) => [s.id, s] as const));
   const chain = new Set<string>();

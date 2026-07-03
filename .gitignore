@@ -13,5 +13,9 @@ dist/
 .DS_Store
 *.log
 
+# opencode agent state + nix direnv (not source)
+.omo/
+.direnv/
+
 # opencode local plugin testing
 .opencode/plugins/*.symlink

@@ -107,7 +107,11 @@ const extractFilesFromParts = (parts: Part[]): string[] =>
     .map((p) => extractPath(p.input ?? {}))
     .filter((f): f is string => f !== null);
 
-export const renderMessage = (entry: HistoryEntry, index: number, full = false): RenderedEntry => {
+export const renderMessage = (
+  entry: HistoryEntry,
+  index: number,
+  full = false,
+): RenderedEntry => {
   const { info, parts } = entry;
   const text = textOf(parts);
 
@@ -123,5 +127,10 @@ export const renderMessage = (entry: HistoryEntry, index: number, full = false):
   const body = full ? text : clip(text, 300);
   const summary = tools ? (body ? `${tools}\n${body}` : tools) : body;
 
-  return { index, role: "assistant", summary, ...(files.length > 0 && { files }) };
+  return {
+    index,
+    role: "assistant",
+    summary,
+    ...(files.length > 0 && { files }),
+  };
 };

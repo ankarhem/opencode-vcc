@@ -1,5 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { formatSummary, capBrief, wrapLongLines, RECALL_NOTE } from "../src/core/format";
+import {
+  formatSummary,
+  capBrief,
+  wrapLongLines,
+  RECALL_NOTE,
+} from "../src/core/format";
 import type { SectionData } from "../src/core/sections";
 
 const empty: SectionData = {
@@ -65,7 +70,9 @@ describe("formatSummary", () => {
       briefTranscript: `[assistant]\n${"word ".repeat(80)}`,
     };
     const r = formatSummary(data);
-    expect(Math.max(...r.split("\n").map((line) => line.length))).toBeLessThanOrEqual(120);
+    expect(
+      Math.max(...r.split("\n").map((line) => line.length)),
+    ).toBeLessThanOrEqual(120);
   });
 });
 
@@ -77,7 +84,10 @@ describe("capBrief", () => {
 
   it("cuts to the last 120 lines, drops lines before the first header, and prepends an omission note", () => {
     // Lines entirely before the kept 120-line window: dropped by the slice itself.
-    const junkBeforeWindow = Array.from({ length: 10 }, (_, i) => `ancient junk ${i}`);
+    const junkBeforeWindow = Array.from(
+      { length: 10 },
+      (_, i) => `ancient junk ${i}`,
+    );
     // Lines inside the kept window but before the first header: dropped by the
     // header-seeking logic.
     const junkInWindow = ["stray a", "stray b", "stray c"];
@@ -89,7 +99,9 @@ describe("capBrief", () => {
     const result = capBrief(text);
 
     const omitted = lines.length - 120;
-    expect(result.startsWith(`...(${omitted} earlier lines omitted)\n\n`)).toBe(true);
+    expect(result.startsWith(`...(${omitted} earlier lines omitted)\n\n`)).toBe(
+      true,
+    );
     expect(result).not.toContain("ancient junk");
     expect(result).not.toContain("stray a");
     expect(result).not.toContain("stray b");

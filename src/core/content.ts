@@ -43,18 +43,26 @@ export const nonEmptyLines = (text: string): string[] =>
     .map((line) => line.trim())
     .filter(Boolean);
 
-export const firstLine = (text: string, max = 200): string => clip(text.split("\n")[0] ?? "", max);
+export const firstLine = (text: string, max = 200): string =>
+  clip(text.split("\n")[0] ?? "", max);
 
 export const textParts = (content: ContentInput): (string | undefined)[] => {
   if (!content) return [];
   if (typeof content === "string") return [content];
-  return content.filter((part) => part.type === "text").map((part) => part.text);
+  return content
+    .filter((part) => part.type === "text")
+    .map((part) => part.text);
 };
 
-export const textOf = (content: ContentInput): string => textParts(content).join("\n");
+export const textOf = (content: ContentInput): string =>
+  textParts(content).join("\n");
 
 /** Extract a snippet of ~`radius` chars around the first match of `term` in `text`. */
-export const snippet = (text: string, term: string, radius = 60): string | null => {
+export const snippet = (
+  text: string,
+  term: string,
+  radius = 60,
+): string | null => {
   const idx = text.toLowerCase().indexOf(term.toLowerCase());
   if (idx === -1) return null;
   const start = Math.max(0, idx - radius);
