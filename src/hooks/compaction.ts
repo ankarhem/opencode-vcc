@@ -138,9 +138,14 @@ export function createCompactionHooks(
     }
   };
 
-  const clear = (sessionID: string): void => {
+  const clearAfterOverwrite = (sessionID: string): void => {
     pending.delete(sessionID);
     computed.delete(sessionID);
+    finalized.set(sessionID, now());
+  };
+
+  const markFinalized = (sessionID: string): void => {
+    pending.delete(sessionID);
     finalized.set(sessionID, now());
   };
 
@@ -165,53 +170,58 @@ export function createCompactionHooks(
       nativeCompacting.set(sessionID, now());
       return;
     }
-    nativeCompacting.delete(sessionID);
 
-    const messages = await deps.client.session.messages({
-      path: { id: sessionID },
-    });
-    const previousSummary = extractPreviousSummary(messages);
-    const summaryText = compile({ messages, previousSummary });
+    try {
+      nativeCompacting.delete(sessionID);
 
-    const keepN = pendingEntry?.keepN ?? null;
-    const stats: CompactionStats = {
-      summarized: messages.length,
-      previousSummaryUsed: Boolean(previousSummary),
-      keepN,
-      requestedKeepExplicit: keepN !== null,
-    };
+      const messages = await deps.client.session.messages({
+        path: { id: sessionID },
+      });
+      const previousSummary = extractPreviousSummary(messages);
+      const summaryText = compile({ messages, previousSummary });
 
-    if (!summaryText) {
-      // Nothing to compact: let native compaction proceed. Structure-only dump.
+      const keepN = pendingEntry?.keepN ?? null;
+      const stats: CompactionStats = {
+        summarized: messages.length,
+        previousSummaryUsed: Boolean(previousSummary),
+        keepN,
+        requestedKeepExplicit: keepN !== null,
+      };
+
+      if (!summaryText) {
+        nativeCompacting.set(sessionID, now());
+        dump({
+          phase: "compacting",
+          sessionID,
+          result: "empty-summary",
+          messageCount: messages.length,
+          previousSummaryUsed: stats.previousSummaryUsed,
+        });
+        return;
+      }
+
+      const summaryMsgIds = new Set<string>();
+      for (const entry of messages) {
+        if (entry.info.summary === true) summaryMsgIds.add(entry.info.id);
+      }
+
+      computed.set(sessionID, { summaryText, stats, summaryMsgIds });
+      output.prompt = ECHO_PROMPT;
+
       dump({
         phase: "compacting",
         sessionID,
-        result: "empty-summary",
+        result: "computed",
         messageCount: messages.length,
-        previousSummaryUsed: stats.previousSummaryUsed,
+        summaryMsgIds: [...summaryMsgIds],
+        stats,
+        summaryPreview: summaryText.slice(0, 300),
       });
-      return;
+    } catch (err) {
+      // Degrade to native compaction — never break the hook.
+      nativeCompacting.set(sessionID, now());
+      dump({ phase: "compacting-error", sessionID, error: String(err) });
     }
-
-    const summaryMsgIds = new Set<string>();
-    for (const entry of messages) {
-      if (entry.info.summary === true) summaryMsgIds.add(entry.info.id);
-    }
-
-    computed.set(sessionID, { summaryText, stats, summaryMsgIds });
-    // Minimal echo: the LLM produces "OK", then text.complete overwrites it with
-    // our deterministic summary.
-    output.prompt = ECHO_PROMPT;
-
-    dump({
-      phase: "compacting",
-      sessionID,
-      result: "computed",
-      messageCount: messages.length,
-      summaryMsgIds: [...summaryMsgIds],
-      stats,
-      summaryPreview: summaryText.slice(0, 300),
-    });
   };
 
   const applyAugment = (
@@ -242,40 +252,39 @@ export function createCompactionHooks(
     // have raced ahead and set finalized before we got to augment.
     if (!nativeStarted && finalized.has(input.sessionID)) return;
 
-    if (nativeStarted) {
-      nativeCompacting.delete(input.sessionID);
-      applyAugment(input, output, "nativeCompacting");
+    let msg: HistoryEntry | undefined;
+    try {
+      const messages = await deps.client.session.messages({
+        path: { id: input.sessionID },
+      });
+      msg = messages.find((m) => m.info.id === input.messageID);
+    } catch {
+      // lookup failed — fall back to nativeCompacting flag below
+    }
+
+    if (msg) {
+      if (msg.info.summary !== true || msg.info.agent !== "compaction") return;
+    } else if (!nativeStarted) {
       return;
     }
 
-    // Fallback for when compacting() didn't fire (e.g. plugin loaded mid-session).
-    const messages = await deps.client.session.messages({
-      path: { id: input.sessionID },
-    });
-    const msg = messages.find((m) => m.info.id === input.messageID);
-    if (!msg) return;
-    if (msg.info.summary !== true || msg.info.agent !== "compaction") return;
-
-    applyAugment(input, output, "fallback-lookup");
+    if (nativeStarted) nativeCompacting.delete(input.sessionID);
+    applyAugment(
+      input,
+      output,
+      nativeStarted ? "nativeCompacting" : "fallback-lookup",
+    );
   };
 
-  const textComplete = async (
-    input: { sessionID: string; messageID: string; partID: string },
+  const overwriteAndFinalize = async (
+    input: { sessionID: string; messageID: string },
     output: { text: string },
+    c: ComputedEntry,
   ): Promise<void> => {
-    const c = computed.get(input.sessionID);
-    if (!c) {
-      await augmentNativeSummary(input, output);
-      return;
-    }
-    // HARD GATE: only overwrite the recorded compaction summary message, never
-    // ordinary chat text. This is the critical safety property.
-    if (!c.summaryMsgIds.has(input.messageID)) return;
-
     output.text = c.summaryText;
 
     const followUpPrompt = pending.get(input.sessionID)?.followUpPrompt;
-    clear(input.sessionID);
+    clearAfterOverwrite(input.sessionID);
 
     try {
       await deps.client.tui.showToast({
@@ -303,6 +312,49 @@ export function createCompactionHooks(
     });
   };
 
+  const textComplete = async (
+    input: { sessionID: string; messageID: string; partID: string },
+    output: { text: string },
+  ): Promise<void> => {
+    try {
+      const c = computed.get(input.sessionID);
+      if (!c) {
+        await augmentNativeSummary(input, output);
+        return;
+      }
+      if (c.summaryMsgIds.has(input.messageID)) {
+        await overwriteAndFinalize(input, output, c);
+        return;
+      }
+
+      // Gate-miss: messageID not in recorded summary IDs. If the echo produced
+      // "OK", the compaction target was likely created after compacting() fetched.
+      if (output.text.trim() === "OK") {
+        dump({
+          phase: "gate-miss-fallback",
+          sessionID: input.sessionID,
+          messageID: input.messageID,
+          expectedIds: [...c.summaryMsgIds],
+        });
+        await overwriteAndFinalize(input, output, c);
+        return;
+      }
+
+      dump({
+        phase: "gate-miss",
+        sessionID: input.sessionID,
+        messageID: input.messageID,
+        expectedIds: [...c.summaryMsgIds],
+      });
+    } catch (err) {
+      dump({
+        phase: "text-complete-error",
+        sessionID: input.sessionID,
+        error: String(err),
+      });
+    }
+  };
+
   const event = async (input: {
     event: { type: string; [k: string]: unknown };
   }): Promise<void> => {
@@ -315,7 +367,9 @@ export function createCompactionHooks(
     const sessionID = (props as { sessionID?: unknown }).sessionID;
     if (typeof sessionID !== "string") return;
 
-    clear(sessionID);
+    // Don't delete computed here — it must survive until textComplete processes it.
+    // TTL eviction handles stale entries.
+    markFinalized(sessionID);
   };
 
   return {

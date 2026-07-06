@@ -2,6 +2,7 @@ import type { NormalizedBlock } from "./types";
 import { clip } from "./content";
 import { extractPath } from "./tool-args";
 import { collapseSkillText } from "./skill-collapse";
+import { STOPWORDS } from "./stopwords";
 
 const TRUNCATE_USER = 256;
 const TRUNCATE_ASSISTANT = 200;
@@ -26,116 +27,13 @@ const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
 const isWord = (seg: { segment: string; isWordLike?: boolean }): boolean =>
   seg.isWordLike || /[\p{L}\p{N}]/u.test(seg.segment);
 
-// Common stop words — don't count toward budget
-const STOP_WORDS = new Set([
-  "a",
-  "an",
-  "the",
-  "is",
-  "are",
-  "was",
-  "were",
-  "be",
-  "been",
-  "being",
-  "have",
-  "has",
-  "had",
-  "do",
-  "does",
-  "did",
-  "will",
-  "would",
-  "could",
-  "should",
-  "may",
-  "might",
-  "shall",
-  "can",
-  "need",
-  "must",
-  "to",
-  "of",
-  "in",
-  "for",
-  "on",
-  "with",
-  "at",
-  "by",
-  "from",
-  "as",
-  "into",
-  "through",
-  "during",
-  "before",
-  "after",
-  "above",
-  "below",
-  "between",
-  "under",
-  "over",
-  "and",
-  "but",
-  "or",
-  "nor",
-  "not",
-  "so",
-  "yet",
-  "both",
-  "either",
-  "neither",
-  "each",
-  "every",
-  "all",
-  "any",
-  "few",
-  "more",
-  "most",
-  "other",
-  "some",
-  "such",
-  "no",
-  "that",
-  "this",
-  "these",
-  "those",
-  "it",
-  "its",
-  "i",
-  "me",
-  "my",
-  "we",
-  "our",
-  "you",
-  "your",
-  "he",
-  "him",
-  "his",
-  "she",
-  "her",
-  "they",
-  "them",
-  "their",
-  "who",
-  "which",
-  "what",
-  "if",
-  "then",
-  "than",
-  "when",
-  "where",
-  "how",
-  "just",
-  "also",
-]);
-
 const truncateTokens = (text: string, limit: number): string => {
   const flat = text.replace(/\s+/g, " ").trim();
   let count = 0;
   let lastEnd = 0;
   for (const seg of segmenter.segment(flat)) {
     if (isWord(seg)) {
-      if (!STOP_WORDS.has(seg.segment.toLowerCase())) {
+      if (!STOPWORDS.has(seg.segment.toLowerCase())) {
         count++;
         if (count > limit) {
           return flat.slice(0, lastEnd).trimEnd() + "...(truncated)";
@@ -196,7 +94,12 @@ const toolOneLiner = (name: string, args: Record<string, unknown>): string => {
   const path = extractPath(args);
   if (path) return `* ${name} "${path}"`;
   if (name === "bash" || name === "Bash") {
-    const raw = (args.command ?? args.description ?? "") as string;
+    const raw =
+      typeof args.command === "string"
+        ? args.command
+        : typeof args.description === "string"
+          ? args.description
+          : "";
     const cmd = compressBash(raw);
     return `* ${name} "${cmd}"`;
   }

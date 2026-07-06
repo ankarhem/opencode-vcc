@@ -37,6 +37,7 @@ describe("filterNoise", () => {
     expect(result[0]).toEqual({
       kind: "user",
       text: "Fix the bug",
+      sourceIndex: 1,
     });
   });
 
@@ -53,6 +54,7 @@ describe("filterNoise", () => {
     expect(result[0]).toEqual({
       kind: "user",
       text: "Fix the login",
+      sourceIndex: 0,
     });
   });
 
@@ -68,6 +70,7 @@ describe("filterNoise", () => {
     expect(result[0]).toEqual({
       kind: "user",
       text: "real task",
+      sourceIndex: 1,
     });
   });
 

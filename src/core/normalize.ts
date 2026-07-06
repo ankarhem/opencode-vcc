@@ -13,10 +13,12 @@ const isTextPart = (p: Part): p is TextPart => p.type === "text";
 const isReasoningPart = (p: Part): p is ReasoningPart => p.type === "reasoning";
 const isToolPart = (p: Part): p is ToolPart => p.type === "tool";
 
-// opencode's tool part carries a terminal status; treat only explicit errors as
-// non-zero. No state → no known exit code (undefined).
-const exitCodeFromState = (state: ToolPart["state"]): number | undefined =>
-  state === undefined ? undefined : state.status === "error" ? 1 : 0;
+const exitCodeFromState = (state: ToolPart["state"]): number | undefined => {
+  if (state === undefined) return undefined;
+  if (state.status === "error") return 1;
+  if (state.status === "completed") return 0;
+  return undefined;
+};
 
 const normalizeUser = (
   parts: Part[],

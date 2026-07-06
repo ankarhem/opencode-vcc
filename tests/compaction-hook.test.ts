@@ -294,7 +294,7 @@ describe("createCompactionHooks - event cleanup", () => {
     return hooks;
   };
 
-  it("clears state on session.compacted", async () => {
+  it("overwrites survive session.compacted race (C1 fix)", async () => {
     const h = makeHarness({ messages: convo() });
     const hooks = await primeSession(h);
     await hooks.event({
@@ -305,10 +305,11 @@ describe("createCompactionHooks - event cleanup", () => {
       { sessionID: "s1", messageID: "sum_new", partID: "p" },
       out,
     );
-    expect(out.text).toBe("OK");
+    // C1: computed survives session.compacted → overwrite still happens
+    expect(out.text).toContain("[Session Goal]");
   });
 
-  it("clears state on session.error", async () => {
+  it("overwrites survive session.error race (C1 fix)", async () => {
     const h = makeHarness({ messages: convo() });
     const hooks = await primeSession(h);
     await hooks.event({
@@ -319,7 +320,7 @@ describe("createCompactionHooks - event cleanup", () => {
       { sessionID: "s1", messageID: "sum_new", partID: "p" },
       out,
     );
-    expect(out.text).toBe("OK");
+    expect(out.text).toContain("[Session Goal]");
   });
 
   it("ignores unrelated event types (state survives)", async () => {
@@ -446,7 +447,7 @@ describe("createCompactionHooks - augments default LLM compaction", () => {
     expect(out.text).toContain(RECALL_NOTE);
   });
 
-  it("uses nativeCompacting flag from compacting() and skips messages() lookup", async () => {
+  it("uses nativeCompacting flag with hard gate verification", async () => {
     const h = makeHarness({ messages: convo() });
     const hooks = createCompactionHooks(h.deps);
 
@@ -464,7 +465,8 @@ describe("createCompactionHooks - augments default LLM compaction", () => {
     );
 
     expect(out.text).toContain(RECALL_NOTE);
-    expect(h.getMessagesCalls()).toBe(callsAfterCompacting);
+    // C3: hard gate verification does one messages() lookup
+    expect(h.getMessagesCalls()).toBe(callsAfterCompacting + 1);
   });
 
   it("prevents double-append with fresh output objects after nativeCompacting augment", async () => {
