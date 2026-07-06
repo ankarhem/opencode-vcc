@@ -14,17 +14,13 @@ describe("RECALL_NOTE", () => {
     expect(RECALL_NOTE.toLowerCase()).toContain("compact");
   });
 
-  it("instructs the agent to search before starting new work", () => {
-    expect(RECALL_NOTE).toContain("Before starting new work");
+  it("says to use the recall tool to search pre-compaction context", () => {
+    expect(RECALL_NOTE).toContain(
+      "Use the `recall` tool to search in the pre-compaction context",
+    );
   });
 
-  it("lists searchable categories", () => {
-    expect(RECALL_NOTE).toContain("decisions");
-    expect(RECALL_NOTE).toContain("completed tasks");
-    expect(RECALL_NOTE).toContain("file changes");
-  });
-
-  it("warns against redoing completed work", () => {
-    expect(RECALL_NOTE).toContain("Do not redo completed work");
+  it("warns against redoing work already completed", () => {
+    expect(RECALL_NOTE).toContain("Do not redo work already completed");
   });
 });

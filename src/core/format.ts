@@ -2,9 +2,6 @@
  * Text appended to opencode's native compaction summaries so the agent knows
  * the `recall` tool exists and can recover pre-compaction context.
  *
- * Wording is intentionally imperative and specific: "Before starting new work"
- * gives a clear trigger condition, listing searchable categories (decisions,
- * completed tasks, file changes) tells the agent WHAT to look for, and the
  * trailing warning discourages redoing completed work.
  */
 export const RECALL_NOTE =
