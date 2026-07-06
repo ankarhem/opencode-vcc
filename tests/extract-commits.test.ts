@@ -77,6 +77,14 @@ describe("extractCommits", () => {
     const commits = extractCommits(blocks);
     expect(commits).toHaveLength(0);
   });
+
+  it("ignores git commit commands without -m flag", () => {
+    const blocks = normalize(
+      history(bashEntry("git commit --allow-empty", "")),
+    );
+    const commits = extractCommits(blocks);
+    expect(commits).toHaveLength(0);
+  });
 });
 
 describe("formatCommits", () => {
