@@ -12,7 +12,6 @@ import type { HistoryEntry } from "../src/core/render-entries";
 import { DEFAULT_SETTINGS, type VccSettings } from "../src/core/settings";
 import { RECALL_NOTE } from "../src/core/format";
 
-// ── fixtures (explicit ids + summary flags the hook logic gates on) ──
 const userEntry = (id: string, text: string): HistoryEntry => ({
   info: { id, role: "user" },
   parts: [{ type: "text", text }],
@@ -39,7 +38,6 @@ const convo = (): HistoryEntry[] => [
   summaryEntry("sum_new", ""),
 ];
 
-// ── mock deps harness ──
 interface Harness {
   deps: CompactionHookDeps;
   toasts: Array<{ body: { message: string; variant: string } }>;
@@ -208,11 +206,9 @@ describe("createCompactionHooks - text.complete HARD GATE", () => {
       out,
     );
 
-    // deterministic overwrite
     expect(out.text).not.toBe("OK");
     expect(out.text).toContain("[Session Goal]");
 
-    // toast with formatted stats
     const expectedStats: CompactionStats = {
       summarized: 3,
       previousSummaryUsed: false,
@@ -225,7 +221,6 @@ describe("createCompactionHooks - text.complete HARD GATE", () => {
     );
     expect(h.toasts[0]?.body.variant).toBe("info");
 
-    // follow-up prompt sent
     expect(h.prompts).toEqual(["do next"]);
 
     // state cleared → a second gated text.complete is a no-op

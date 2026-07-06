@@ -113,7 +113,6 @@ export function createCompactionHooks(
   // must survive the session.compacted race (see augmentNativeSummary).
   const nativeCompacting = new Map<string, number>();
 
-  /** Drop entries whose pending request has aged past the TTL. */
   const evictStale = (): void => {
     const cutoff = now() - TTL_MS;
     for (const [id, entry] of pending) {
@@ -130,7 +129,6 @@ export function createCompactionHooks(
     }
   };
 
-  /** Write a debug snapshot when enabled; never throws. */
   const dump = (data: Record<string, unknown>): void => {
     if (!deps.settings.debug) return;
     try {
@@ -216,6 +214,21 @@ export function createCompactionHooks(
     });
   };
 
+  const applyAugment = (
+    input: { sessionID: string; messageID: string },
+    output: { text: string },
+    source: string,
+  ): void => {
+    output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
+    finalized.set(input.sessionID, now());
+    dump({
+      phase: "augment",
+      sessionID: input.sessionID,
+      messageID: input.messageID,
+      source,
+    });
+  };
+
   // Default-compaction path: append RECALL_NOTE to opencode's own LLM summary.
   const augmentNativeSummary = async (
     input: { sessionID: string; messageID: string },
@@ -230,15 +243,8 @@ export function createCompactionHooks(
     if (!nativeStarted && finalized.has(input.sessionID)) return;
 
     if (nativeStarted) {
-      output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
       nativeCompacting.delete(input.sessionID);
-      finalized.set(input.sessionID, now());
-      dump({
-        phase: "augment",
-        sessionID: input.sessionID,
-        messageID: input.messageID,
-        source: "nativeCompacting",
-      });
+      applyAugment(input, output, "nativeCompacting");
       return;
     }
 
@@ -250,14 +256,7 @@ export function createCompactionHooks(
     if (!msg) return;
     if (msg.info.summary !== true || msg.info.agent !== "compaction") return;
 
-    output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
-    finalized.set(input.sessionID, now());
-    dump({
-      phase: "augment",
-      sessionID: input.sessionID,
-      messageID: input.messageID,
-      source: "fallback-lookup",
-    });
+    applyAugment(input, output, "fallback-lookup");
   };
 
   const textComplete = async (
