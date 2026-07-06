@@ -4,6 +4,13 @@
 // `Message`/`Part` unions, so this module stays easy to test in isolation.
 // Real SDK objects are structurally compatible with these types.
 
+import { clip, textOf } from "./content";
+import { extractPath, summarizeToolArgs } from "./tool-args";
+
+// Re-export so existing importers (compaction.ts, normalize.ts) keep resolving
+// textOf from this module while the implementation lives in content.ts.
+export { textOf };
+
 export interface TextPart {
   type: "text";
   text: string;
@@ -50,40 +57,6 @@ export interface RenderedEntry {
   summary: string;
   files?: string[];
 }
-
-const clip = (text: string, max = 200): string => {
-  if (text.length <= max) return text;
-  const cut = text.lastIndexOf(" ", max);
-  let end = cut > max * 0.6 ? cut : max;
-  if (end > 0 && end < text.length) {
-    const code = text.charCodeAt(end - 1);
-    if (code >= 0xd800 && code <= 0xdbff) end--;
-  }
-  return text.slice(0, end);
-};
-
-const isTextPart = (p: Part): p is TextPart => p.type === "text";
-
-export const textOf = (parts: Part[]): string =>
-  parts
-    .filter(isTextPart)
-    .map((p) => p.text)
-    .join("\n");
-
-const extractPath = (args: Record<string, unknown>): string | null => {
-  for (const key of ["path", "file_path", "filePath", "file"]) {
-    if (typeof args[key] === "string") return args[key] as string;
-  }
-  return null;
-};
-
-const summarizeToolArgs = (args: Record<string, unknown>): string => {
-  const path = extractPath(args);
-  if (path) return `path=${path}`;
-  if (typeof args.command === "string") return `command=${args.command}`;
-  if (typeof args.query === "string") return `query=${args.query}`;
-  return Object.keys(args).join(", ");
-};
 
 const isToolPart = (p: Part): p is ToolPart => p.type === "tool";
 

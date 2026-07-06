@@ -1,8 +1,10 @@
-type ContentInput =
-  | string
-  | Array<{ type: string; text?: string; [k: string]: unknown }>
-  | undefined
-  | null;
+// No index signature: its presence would make render-entries' `Part` union
+// (whose index-signature members type `text` as `unknown`) unassignable here,
+// re-introducing the textOf duplication. Extra props still pass via structural
+// subtyping for typed callers, and fresh literals here already fit this shape.
+type ContentElem = { type: string; text?: string };
+
+type ContentInput = string | ContentElem[] | undefined | null;
 
 export const clip = (text: string, max = 200): string => {
   if (text.length <= max) return text;
