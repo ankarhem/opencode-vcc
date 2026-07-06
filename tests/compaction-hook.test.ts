@@ -428,6 +428,96 @@ describe("createCompactionHooks - augments default LLM compaction", () => {
     const occurrences = out.text.split(RECALL_NOTE).length - 1;
     expect(occurrences).toBe(1);
   });
+
+  it("appends RECALL_NOTE even when session.compacted fires before text.complete", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+
+    await hooks["experimental.session.compacting"](
+      { sessionID: "s1" },
+      emptyOutput(),
+    );
+
+    await hooks.event({
+      event: { type: "session.compacted", properties: { sessionID: "s1" } },
+    });
+
+    const out = { text: "LLM summary body." };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      out,
+    );
+
+    expect(out.text).toContain(RECALL_NOTE);
+  });
+
+  it("uses nativeCompacting flag from compacting() and skips messages() lookup", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+
+    await hooks["experimental.session.compacting"](
+      { sessionID: "s1" },
+      emptyOutput(),
+    );
+
+    const callsAfterCompacting = h.getMessagesCalls();
+
+    const out = { text: "LLM summary body." };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      out,
+    );
+
+    expect(out.text).toContain(RECALL_NOTE);
+    expect(h.getMessagesCalls()).toBe(callsAfterCompacting);
+  });
+
+  it("prevents double-append with fresh output objects after nativeCompacting augment", async () => {
+    const h = makeHarness({ messages: convo() });
+    const hooks = createCompactionHooks(h.deps);
+
+    await hooks["experimental.session.compacting"](
+      { sessionID: "s1" },
+      emptyOutput(),
+    );
+
+    const out1 = { text: "first summary." };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      out1,
+    );
+    expect(out1.text).toContain(RECALL_NOTE);
+
+    const out2 = { text: "second text." };
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p2" },
+      out2,
+    );
+    expect(out2.text).toBe("second text.");
+  });
+
+  it("writes a debug dump for the augment path when debug is enabled", async () => {
+    const h = makeHarness({ messages: convo(), settings: { debug: true } });
+    const hooks = createCompactionHooks(h.deps);
+
+    await hooks["experimental.session.compacting"](
+      { sessionID: "s1" },
+      emptyOutput(),
+    );
+
+    await hooks["experimental.text.complete"](
+      { sessionID: "s1", messageID: "sum_new", partID: "p" },
+      { text: "LLM summary." },
+    );
+
+    const augmentDump = h.debugData.find(
+      (d) =>
+        typeof d === "object" &&
+        d !== null &&
+        (d as Record<string, unknown>).phase === "augment",
+    );
+    expect(augmentDump).toBeDefined();
+  });
 });
 
 describe("createCompactionHooks - debug dump", () => {

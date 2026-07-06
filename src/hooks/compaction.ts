@@ -109,6 +109,9 @@ export function createCompactionHooks(
   // Sessions we already handled+cleared; blocks augmentNativeSummary from
   // re-touching an already-processed compaction. TTL-evicted like pending.
   const finalized = new Map<string, number>();
+  // Proactive signal for default-path compactions. NOT cleared in clear() —
+  // must survive the session.compacted race (see augmentNativeSummary).
+  const nativeCompacting = new Map<string, number>();
 
   /** Drop entries whose pending request has aged past the TTL. */
   const evictStale = (): void => {
@@ -121,6 +124,9 @@ export function createCompactionHooks(
     }
     for (const [id, at] of finalized) {
       if (at < cutoff) finalized.delete(id);
+    }
+    for (const [id, at] of nativeCompacting) {
+      if (at < cutoff) nativeCompacting.delete(id);
     }
   };
 
@@ -157,7 +163,11 @@ export function createCompactionHooks(
     const pendingEntry = pending.get(sessionID);
     const handle =
       pendingEntry !== undefined || deps.settings.overrideDefaultCompaction;
-    if (!handle) return; // defer to opencode's native LLM compaction
+    if (!handle) {
+      nativeCompacting.set(sessionID, now());
+      return;
+    }
+    nativeCompacting.delete(sessionID);
 
     const messages = await deps.client.session.messages({
       path: { id: sessionID },
@@ -207,14 +217,32 @@ export function createCompactionHooks(
   };
 
   // Default-compaction path: append RECALL_NOTE to opencode's own LLM summary.
-  // GATE: only genuine compaction summaries (info.summary && agent==="compaction")
-  // so ordinary chat text is never touched. Idempotent.
   const augmentNativeSummary = async (
     input: { sessionID: string; messageID: string },
     output: { text: string },
   ): Promise<void> => {
-    if (finalized.has(input.sessionID)) return;
     if (output.text.includes(RECALL_NOTE)) return;
+
+    const nativeStarted = nativeCompacting.has(input.sessionID);
+
+    // Skip finalized gate when nativeCompacting is set: session.compacted may
+    // have raced ahead and set finalized before we got to augment.
+    if (!nativeStarted && finalized.has(input.sessionID)) return;
+
+    if (nativeStarted) {
+      output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
+      nativeCompacting.delete(input.sessionID);
+      finalized.set(input.sessionID, now());
+      dump({
+        phase: "augment",
+        sessionID: input.sessionID,
+        messageID: input.messageID,
+        source: "nativeCompacting",
+      });
+      return;
+    }
+
+    // Fallback for when compacting() didn't fire (e.g. plugin loaded mid-session).
     const messages = await deps.client.session.messages({
       path: { id: input.sessionID },
     });
@@ -223,6 +251,13 @@ export function createCompactionHooks(
     if (msg.info.summary !== true || msg.info.agent !== "compaction") return;
 
     output.text = `${output.text.trimEnd()}\n\n${RECALL_NOTE}`;
+    finalized.set(input.sessionID, now());
+    dump({
+      phase: "augment",
+      sessionID: input.sessionID,
+      messageID: input.messageID,
+      source: "fallback-lookup",
+    });
   };
 
   const textComplete = async (
