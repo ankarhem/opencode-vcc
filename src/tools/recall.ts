@@ -3,7 +3,6 @@ import type { HistoryEntry } from "../core/render-entries";
 import { loadAllMessages } from "../core/load-messages";
 import { searchEntries } from "../core/search-entries";
 import { formatRecallOutput } from "../core/format-recall";
-import { normalizeRecallScope, type RecallScope } from "../core/recall-scope";
 
 export interface RecallToolDeps {
   client: {
@@ -18,7 +17,7 @@ const DEFAULT_RECENT = 25;
 
 /**
  * Indices requested for expansion that are invalid: non-integers, or not present
- * in the available (scoped) index set. Ported from pi-vcc's expand validation.
+ * in the available index set. Ported from pi-vcc's expand validation.
  */
 export const invalidExpandIndices = (
   requested: number[],
@@ -26,23 +25,16 @@ export const invalidExpandIndices = (
 ): number[] =>
   requested.filter((i) => !Number.isInteger(i) || !available.has(i));
 
-const scopePrefix = (scope: RecallScope): string =>
-  scope === "all" ? "Scope: all\n\n" : "";
-
 export const createVccRecallTool = (deps: RecallToolDeps) =>
   tool({
     description:
-      "Search session history. Defaults to active lineage; use scope:'all' to include off-lineage branches. Supports regex queries, paging, and expand indices.",
+      "Search session history. Supports regex queries, paging, and expand indices.",
     args: {
       query: tool.schema.string().optional(),
       expand: tool.schema.array(tool.schema.number()).optional(),
       page: tool.schema.number().optional(),
-      scope: tool.schema
-        .union([tool.schema.literal("lineage"), tool.schema.literal("all")])
-        .optional(),
     },
     async execute(args, context): Promise<ToolResult> {
-      const scope = normalizeRecallScope(args.scope);
       const history = await deps.client.session.messages({
         path: { id: context.sessionID },
       });
@@ -56,14 +48,13 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
         const available = new Set(rendered.map((e) => e.index));
         const invalid = invalidExpandIndices(expand, available);
         if (invalid.length > 0) {
-          const where = scope === "all" ? "session history" : "active lineage";
           return {
-            output: `Cannot expand indices outside ${where}: ${invalid.join(", ")}`,
+            output: `Cannot expand indices outside session history: ${invalid.join(", ")}`,
           };
         }
         const wanted = new Set(expand);
         const expanded = rendered.filter((e) => wanted.has(e.index));
-        return { output: scopePrefix(scope) + formatRecallOutput(expanded) };
+        return { output: formatRecallOutput(expanded) };
       }
 
       // ── SEARCH mode: paginated ranked results ──
@@ -74,14 +65,13 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
         const start = (page - 1) * PAGE_SIZE;
         const pageResults = all.slice(start, start + PAGE_SIZE);
         const totalPages = Math.ceil(all.length / PAGE_SIZE);
-        const scopeNote = scope === "all" ? " (scope: all)" : "";
         const header =
           totalPages > 1
-            ? `Page ${page}/${totalPages} (${all.length} total matches${scopeNote})`
-            : `${all.length} matches${scopeNote}`;
+            ? `Page ${page}/${totalPages} (${all.length} total matches)`
+            : `${all.length} matches`;
         const footer =
           page < totalPages
-            ? `\n--- Use page:${page + 1}${scope === "all" ? " with scope:'all'" : ""} for more results ---`
+            ? `\n--- Use page:${page + 1} for more results ---`
             : "";
         return {
           output: formatRecallOutput(pageResults, query, header) + footer,
@@ -91,6 +81,6 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
       // ── BROWSE mode: last N entries ──
       const { rendered } = loadAllMessages(history, false);
       const recent = rendered.slice(-DEFAULT_RECENT);
-      return { output: scopePrefix(scope) + formatRecallOutput(recent) };
+      return { output: formatRecallOutput(recent) };
     },
   });

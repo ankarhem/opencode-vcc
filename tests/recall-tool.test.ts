@@ -68,12 +68,6 @@ describe("vcc_recall tool - browse mode", () => {
     const r = out(await t.execute({}, mkCtx("s1")));
     expect(r).toContain("No entries in session history");
   });
-
-  it("prepends 'Scope: all' prefix when scope is all", async () => {
-    const t = createVccRecallTool(mkDeps([userEntry("u0", "hi")]));
-    const r = out(await t.execute({ scope: "all" }, mkCtx("s1")));
-    expect(r.startsWith("Scope: all")).toBe(true);
-  });
 });
 
 describe("vcc_recall tool - search mode", () => {
@@ -175,12 +169,6 @@ describe("vcc_recall tool - expand mode", () => {
     const r = out(await t.execute({ expand: [99] }, mkCtx("s1")));
     expect(r).toContain("Cannot expand indices outside");
     expect(r).toContain("99");
-  });
-
-  it("scope:all uses 'session history' in the error wording", async () => {
-    const t = createVccRecallTool(mkDeps([userEntry("u0", "hi")]));
-    const r = out(await t.execute({ expand: [42], scope: "all" }, mkCtx("s1")));
-    expect(r).toContain("session history");
   });
 });
 

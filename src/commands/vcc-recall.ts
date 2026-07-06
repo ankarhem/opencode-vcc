@@ -2,7 +2,6 @@ import type { HistoryEntry } from "../core/render-entries";
 import { loadAllMessages } from "../core/load-messages";
 import { searchEntries } from "../core/search-entries";
 import { formatRecallOutput } from "../core/format-recall";
-import { parseRecallScope } from "../core/recall-scope";
 
 export interface VccRecallCommandDeps {
   client: {
@@ -21,8 +20,7 @@ const PAGE_RE = /\bpage:(\d+)\b/i;
 /** Config entry registering the /vcc-recall slash command. */
 export const vccRecallCommandConfig = {
   template: " ",
-  description:
-    "Search session history. Usage: /vcc-recall <query> [page:N] [scope:all]",
+  description: "Search session history. Usage: /vcc-recall <query> [page:N]",
 };
 
 /**
@@ -33,17 +31,14 @@ export const buildRecallCommandOutput = (
   history: HistoryEntry[],
   args: string,
 ): string => {
-  const { scope, text: afterScope } = parseRecallScope(args);
-  const pageMatch = afterScope.match(PAGE_RE);
+  const pageMatch = args.match(PAGE_RE);
   const page = pageMatch ? Math.max(1, Number(pageMatch[1])) : 1;
-  const query = afterScope.replace(PAGE_RE, "").replace(/\s+/g, " ").trim();
-  const scopePrefix = scope === "all" ? "Scope: all\n\n" : "";
-  const scopeNote = scope === "all" ? " (scope: all)" : "";
+  const query = args.replace(PAGE_RE, "").replace(/\s+/g, " ").trim();
 
   if (!query) {
     const { rendered } = loadAllMessages(history, false);
     const recent = rendered.slice(-DEFAULT_RECENT);
-    return scopePrefix + formatRecallOutput(recent);
+    return formatRecallOutput(recent);
   }
 
   const { rendered, rawMessages } = loadAllMessages(history, false);
@@ -53,12 +48,10 @@ export const buildRecallCommandOutput = (
   const totalPages = Math.ceil(all.length / PAGE_SIZE);
   const header =
     totalPages > 1
-      ? `Page ${page}/${totalPages} (${all.length} total matches${scopeNote})`
-      : `${all.length} matches${scopeNote}`;
+      ? `Page ${page}/${totalPages} (${all.length} total matches)`
+      : `${all.length} matches`;
   const footer =
-    page < totalPages
-      ? `\n--- /vcc-recall ${query}${scope === "all" ? " scope:all" : ""} page:${page + 1} ---`
-      : "";
+    page < totalPages ? `\n--- /vcc-recall ${query} page:${page + 1} ---` : "";
   return formatRecallOutput(pageResults, query, header) + footer;
 };
 

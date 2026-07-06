@@ -95,34 +95,31 @@ Examples:
 /vcc summarize what's left keep:1
 ```
 
-### `/vcc-recall <query> [page:N] [scope:all]`
+### `/vcc-recall <query> [page:N]`
 
 Search the full session history and feed the results to the agent as a new turn.
 
 - `<query>` — search terms (natural-language, BM25-ranked) or a regex (any query
   containing regex metacharacters is treated as a pattern).
 - `page:N` — results are paged 5 at a time.
-- `scope:all` — include off-lineage branches (default: active lineage).
 
 ## Tool: `vcc_recall`
 
 An agent-invocable tool for searching / browsing / expanding prior context —
 including turns removed from the live context by compaction.
 
-| Argument | Type                    | Meaning                                        |
-| -------- | ----------------------- | ---------------------------------------------- |
-| `query`  | string?                 | Search terms or regex. Omit to browse.         |
-| `expand` | number[]?               | Entry indices to return in full (untruncated). |
-| `page`   | number?                 | 1-based page for search results (5 per page).  |
-| `scope`  | `"lineage"` \| `"all"`? | Default `"lineage"`.                           |
+| Argument | Type      | Meaning                                        |
+| -------- | --------- | ---------------------------------------------- |
+| `query`  | string?   | Search terms or regex. Omit to browse.         |
+| `expand` | number[]? | Entry indices to return in full (untruncated). |
+| `page`   | number?   | 1-based page for search results (5 per page).  |
 
 Modes:
 
 - **search** (`query` set) — ranked, paged matches with context snippets.
 - **browse** (nothing set) — the last 25 entries.
 - **expand** (`expand` set, no `query`) — full content of the given entry indices.
-  Indices are stable across scope switches; invalid indices return an
-  explanatory message.
+  Invalid indices return an explanatory message.
 
 ## Configuration
 

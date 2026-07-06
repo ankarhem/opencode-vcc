@@ -49,15 +49,6 @@ describe("/vcc-recall command hook", () => {
     expect(part.text).toContain("hello there");
   });
 
-  it("scope:all is parsed and reflected in the header", async () => {
-    const output = await runRecall(
-      [userEntry("u0", "alpha one"), userEntry("u1", "alpha two")],
-      "alpha scope:all",
-    );
-    const part = output.parts[0] as { text: string };
-    expect(part.text).toContain("(scope: all)");
-  });
-
   it("page:N is parsed for pagination", async () => {
     const history: HistoryEntry[] = [];
     for (let i = 0; i < 7; i++)
