@@ -126,25 +126,27 @@ const mergeBriefTranscript = (prev: string, fresh: string): string => {
 };
 
 const mergePrevious = (prev: string, fresh: string): string => {
-  // Merge header sections
+  const hasHeaders = HEADER_NAMES.some((h) => prev.includes(`[${h}]`));
+
   const headers = HEADER_NAMES.map((header) => {
     const freshSec = sectionOf(fresh, header);
     const prevSec = sectionOf(prev, header);
     return mergeHeaderSection(header, prevSec, freshSec);
   }).filter(Boolean);
 
-  // Merge brief transcript
   const prevBrief = briefOf(prev);
   const freshBrief = briefOf(fresh);
-  const mergedBrief = mergeBriefTranscript(prevBrief, freshBrief);
+  let mergedBrief = mergeBriefTranscript(prevBrief, freshBrief);
+
+  // If prev had no recognizable structure (native LLM narrative), carry it
+  // into the brief so the narrative isn't lost on the next /vcc compaction.
+  if (!hasHeaders && !prevBrief && prev.trim()) {
+    mergedBrief = mergeBriefTranscript(prev.trim(), freshBrief);
+  }
 
   const parts: string[] = [];
-  if (headers.length > 0) {
-    parts.push(headers.join("\n\n"));
-  }
-  if (mergedBrief) {
-    parts.push(capBrief(mergedBrief));
-  }
+  if (headers.length > 0) parts.push(headers.join("\n\n"));
+  if (mergedBrief) parts.push(capBrief(mergedBrief));
 
   return parts.join(SEPARATOR);
 };

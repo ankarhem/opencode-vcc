@@ -1,5 +1,6 @@
 import type { RenderedEntry, HistoryEntry } from "./render-entries";
 import { textOf } from "./render-entries";
+import { STOPWORDS } from "./stopwords";
 
 export interface SearchHit extends RenderedEntry {
   /** Context snippet around the first matched term (only when query provided) */
@@ -22,7 +23,7 @@ const safeRegex = (pattern: string): RegExp => {
 
 /** Detect if the query looks like a single regex pattern (contains regex metacharacters). */
 const looksLikeRegex = (query: string): boolean =>
-  /[|*+?{}()[\]\\^$.]/.test(query);
+  /[|*+?{}()[\]\\^$]/.test(query);
 
 /** Build a regex for snippet highlighting — matches first available term. */
 const snippetRegex = (terms: string[]): RegExp => {
@@ -37,98 +38,6 @@ const snippetRegex = (terms: string[]): RegExp => {
   });
   return new RegExp(alts.join("|"), "i");
 };
-
-// ── Stopwords for natural language queries ──
-const STOPWORDS = new Set([
-  // English
-  "the",
-  "a",
-  "an",
-  "is",
-  "are",
-  "was",
-  "were",
-  "be",
-  "been",
-  "being",
-  "have",
-  "has",
-  "had",
-  "do",
-  "does",
-  "did",
-  "will",
-  "would",
-  "could",
-  "should",
-  "may",
-  "might",
-  "can",
-  "shall",
-  "of",
-  "in",
-  "to",
-  "for",
-  "with",
-  "on",
-  "at",
-  "from",
-  "by",
-  "as",
-  "into",
-  "through",
-  "during",
-  "before",
-  "after",
-  "above",
-  "below",
-  "between",
-  "out",
-  "off",
-  "over",
-  "under",
-  "again",
-  "further",
-  "then",
-  "once",
-  "here",
-  "there",
-  "when",
-  "where",
-  "why",
-  "how",
-  "all",
-  "both",
-  "each",
-  "few",
-  "more",
-  "most",
-  "other",
-  "some",
-  "such",
-  "no",
-  "nor",
-  "not",
-  "only",
-  "own",
-  "same",
-  "so",
-  "than",
-  "too",
-  "very",
-  "just",
-  "about",
-  "it",
-  "its",
-  "that",
-  "this",
-  "what",
-  "which",
-  "who",
-  "whom",
-  "these",
-  "those",
-]);
 
 /** Remove stopwords, keep meaningful terms. */
 const filterStopwords = (terms: string[]): string[] => {
@@ -232,7 +141,15 @@ const lineSnippet = (
 };
 
 /** Build full searchable text for a history entry. */
-const fullText = (entry: HistoryEntry): string => textOf(entry.parts);
+const fullText = (entry: HistoryEntry): string => {
+  const segments: string[] = [textOf(entry.parts)];
+  for (const p of entry.parts) {
+    if (p.type !== "tool") continue;
+    const state = p.state as { output?: unknown } | undefined;
+    if (state && typeof state.output === "string") segments.push(state.output);
+  }
+  return segments.join("\n");
+};
 
 export const searchEntries = (
   entries: RenderedEntry[],

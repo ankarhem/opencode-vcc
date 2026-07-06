@@ -44,7 +44,7 @@ export const filterNoise = (blocks: NormalizedBlock[]): NormalizedBlock[] => {
       if (isNoiseUserBlock(b.text)) continue;
       const cleaned = cleanUserText(b.text);
       if (!cleaned) continue;
-      out.push({ kind: "user", text: cleaned });
+      out.push({ kind: "user", text: cleaned, sourceIndex: b.sourceIndex });
       continue;
     }
     out.push(b);
