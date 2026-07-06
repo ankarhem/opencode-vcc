@@ -1,57 +1,31 @@
 # opencode-vcc
 
-An **algorithmic** conversation compactor for [opencode](https://opencode.ai) — a
-port of [pi-vcc](https://github.com/sting8k/pi-vcc). Instead of asking an LLM to
-summarize the conversation when it needs compacting, opencode-vcc extracts
-structured facts (goal, files touched, commits, blockers, preferences) via
-regex/heuristics and renders a deterministic **brief transcript**.
+A **lossless recall** plugin for [opencode](https://opencode.ai) — a port of
+[pi-vcc](https://github.com/sting8k/pi-vcc). When opencode compacts a
+conversation, opencode-vcc appends a note to the summary telling the agent it
+can recover pre-compaction context via the `recall` tool. The agent can then
+search prior turns for specific decisions, file changes, and completed work that
+the LLM summary may have omitted.
 
-- **Deterministic** — same input → same output.
-- **Cheap & fast** — no summarization API call for the summary itself.
-- **Lossless recall** — the `vcc_recall` tool re-reads the full session history
+- **Lossless recall** — the `recall` tool re-reads the full session history
   (including turns hidden by compaction), so nothing is truly gone.
+- **Zero LLM cost** — the plugin only appends a static note to opencode's own
+  compaction summary; no extra LLM calls are made.
+- **Non-invasive** — opencode's native compaction summary is always preserved;
+  the plugin just augments it.
 
-## How it works (and one important caveat)
+## How it works
 
-opencode does **not** expose a hook that replaces the compaction summary without
-an LLM call. opencode-vcc therefore uses the **echo + overwrite** strategy:
+When opencode compacts a conversation, it produces an LLM-generated summary.
+opencode-vcc's `experimental.text.complete` hook detects compaction summary
+messages (hard-gated by `info.summary === true && info.agent === "compaction"`)
+and appends a `RECALL_NOTE` — a short imperative telling the agent to use the
+`recall` tool before starting new work.
 
-1. `experimental.session.compacting` — compute the deterministic summary from the
-   full session history, and set the compaction prompt to a trivial echo
-   (`"Reply with exactly: OK"`) so the model call is minimal.
-2. `experimental.text.complete` — when the compaction summary message's text
-   completes, overwrite it with the deterministic summary. A **hard gate**
-   (`info.summary === true && info.agent === "compaction"`, matched by message
-   ID) ensures only the compaction summary is ever overwritten — never ordinary
-   chat text.
-
-> **Cost note:** one tiny LLM turn is still made per compaction (the echo). This
-> is the price of not reimplementing opencode's compaction bookkeeping. The
-> summary content itself is 100% algorithmic.
-
-### Default compaction is augmented, not replaced
-
-When you do **not** use `/vcc` (and `overrideDefaultCompaction` is off), opencode
-runs its normal LLM compaction. In that case opencode-vcc leaves the LLM's
-narrative summary intact and simply **appends the recall note** to it, so the
-agent learns the `vcc_recall` tool exists and can recover any pre-compaction
-detail losslessly. This is always on, adds no LLM cost, and is hard-gated to
-genuine compaction summaries (`info.summary === true && info.agent ===
-"compaction"`) — ordinary chat text is never touched.
-
-So there are two levels:
-
-- **Default** — opencode's LLM summary + appended recall note (best of both:
-  narrative synthesis _and_ a lossless recovery path).
-- **`/vcc` (or `overrideDefaultCompaction: true`)** — fully deterministic,
-  hallucination-free algorithmic summary that replaces the LLM summary.
-
-### `keep:N` is advisory
-
-In pi-vcc, `keep:N` controls exactly how many trailing user turns stay
-uncompacted. In opencode, the host owns the head/tail cut — the plugin cannot
-repartition it from the compacting hook. So `keep:N` is recorded for stats/intent
-but the exact retained tail is chosen by opencode. Treat `keep:N` as advisory.
+The `recall` tool searches the full session history (including pre-compaction
+turns) using BM25-ranked search, regex patterns, or browse/expand modes. Results
+are fed back to the agent as tool output, recovering any detail the LLM summary
+omitted.
 
 ## Install
 
@@ -64,38 +38,12 @@ Add to your `opencode.json`:
 }
 ```
 
-Or with per-plugin options (see Configuration):
-
-```json
-{
-  "plugin": [["opencode-vcc", { "overrideDefaultCompaction": true }]]
-}
-```
-
 Or drop it in `.opencode/plugins/` / `~/.config/opencode/plugins/` as a local
 plugin.
 
 ## Commands
 
-### `/vcc [keep:N] [follow-up prompt]`
-
-Compact the conversation **now** using the algorithmic summarizer.
-
-- `keep:N` — advisory count of trailing user turns to keep (see caveat above).
-  May appear at the start or end of the arguments.
-- `follow-up prompt` — an optional prompt sent to the agent after compaction
-  completes.
-
-Examples:
-
-```
-/vcc
-/vcc keep:3
-/vcc keep:2 continue implementing the parser
-/vcc summarize what's left keep:1
-```
-
-### `/vcc-recall <query> [page:N]`
+### `/recall <query> [page:N]`
 
 Search the full session history and feed the results to the agent as a new turn.
 
@@ -103,7 +51,15 @@ Search the full session history and feed the results to the agent as a new turn.
   containing regex metacharacters is treated as a pattern).
 - `page:N` — results are paged 5 at a time.
 
-## Tool: `vcc_recall`
+Examples:
+
+```
+/recall auth bug
+/recall "file path" page:2
+/recall \b(auth|login)\b
+```
+
+## Tool: `recall`
 
 An agent-invocable tool for searching / browsing / expanding prior context —
 including turns removed from the live context by compaction.
@@ -126,18 +82,14 @@ Modes:
 Settings resolve with the precedence **env > plugin options > sidecar file >
 defaults**.
 
-| Key                         | Default | Meaning                                                                                                          |
-| --------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `overrideDefaultCompaction` | `false` | When `true`, opencode-vcc handles **all** compactions (including `/compact` and auto-overflow), not just `/vcc`. |
-| `debug`                     | `false` | Write a diagnostic snapshot to `/tmp/opencode-vcc-debug.json` on each compaction.                                |
+| Key     | Default | Meaning                             |
+| ------- | ------- | ----------------------------------- |
+| `debug` | `false` | Reserved for future diagnostic use. |
 
-- **Plugin options** — the second element of a `["opencode-vcc", { ... }]` entry
-  in `opencode.json`.
 - **Sidecar file** — `~/.config/opencode/opencode-vcc.json` (auto-scaffolded with
   defaults on first load; missing keys are merged non-destructively). Override
   the path with `OPENCODE_VCC_CONFIG_PATH`.
-- **Env** — `OPENCODE_VCC_OVERRIDE_DEFAULT_COMPACTION` and `OPENCODE_VCC_DEBUG`
-  (`true`/`1` or `false`/`0`).
+- **Env** — `OPENCODE_VCC_DEBUG` (`true`/`1` or `false`/`0`).
 
 ## Development
 

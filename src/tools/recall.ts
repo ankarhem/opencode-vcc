@@ -25,10 +25,10 @@ export const invalidExpandIndices = (
 ): number[] =>
   requested.filter((i) => !Number.isInteger(i) || !available.has(i));
 
-export const createVccRecallTool = (deps: RecallToolDeps) =>
+export const createRecallTool = (deps: RecallToolDeps) =>
   tool({
     description:
-      "Search session history. Supports regex queries, paging, and expand indices.",
+      "Search session history for prior work, decisions, and context from before compaction. Supports regex queries, paging, and expand indices.",
     args: {
       query: tool.schema.string().optional(),
       expand: tool.schema.array(tool.schema.number()).optional(),
@@ -42,7 +42,7 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
       const query = args.query?.trim() ?? "";
       const expand = args.expand ?? [];
 
-      // ── EXPAND mode: full untruncated content by index, no query ──
+      // -- EXPAND mode: full untruncated content by index, no query --
       if (expand.length > 0 && !query) {
         const { rendered } = loadAllMessages(history, true);
         const available = new Set(rendered.map((e) => e.index));
@@ -57,7 +57,7 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
         return { output: formatRecallOutput(expanded) };
       }
 
-      // ── SEARCH mode: paginated ranked results ──
+      // -- SEARCH mode: paginated ranked results --
       if (query) {
         const { rendered, rawMessages } = loadAllMessages(history, false);
         const all = searchEntries(rendered, rawMessages, query);
@@ -78,7 +78,7 @@ export const createVccRecallTool = (deps: RecallToolDeps) =>
         };
       }
 
-      // ── BROWSE mode: last N entries ──
+      // -- BROWSE mode: last N entries --
       const { rendered } = loadAllMessages(history, false);
       const recent = rendered.slice(-DEFAULT_RECENT);
       return { output: formatRecallOutput(recent) };

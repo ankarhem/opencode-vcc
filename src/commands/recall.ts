@@ -3,7 +3,7 @@ import { loadAllMessages } from "../core/load-messages";
 import { searchEntries } from "../core/search-entries";
 import { formatRecallOutput } from "../core/format-recall";
 
-export interface VccRecallCommandDeps {
+export interface RecallCommandDeps {
   client: {
     session: {
       messages: (args: { path: { id: string } }) => Promise<HistoryEntry[]>;
@@ -11,20 +11,20 @@ export interface VccRecallCommandDeps {
   };
 }
 
-export const VCC_RECALL_COMMAND = "vcc-recall";
+export const RECALL_COMMAND = "recall";
 
 const PAGE_SIZE = 5;
 const DEFAULT_RECENT = 25;
 const PAGE_RE = /\bpage:(\d+)\b/i;
 
-/** Config entry registering the /vcc-recall slash command. */
-export const vccRecallCommandConfig = {
+/** Config entry registering the /recall slash command. */
+export const recallCommandConfig = {
   template: " ",
-  description: "Search session history. Usage: /vcc-recall <query> [page:N]",
+  description: "Search session history. Usage: /recall <query> [page:N]",
 };
 
 /**
- * Build the recall output text for a /vcc-recall invocation. Extracted so it
+ * Build the recall output text for a /recall invocation. Extracted so it
  * is unit-testable without the hook plumbing.
  */
 export const buildRecallCommandOutput = (
@@ -51,22 +51,22 @@ export const buildRecallCommandOutput = (
       ? `Page ${page}/${totalPages} (${all.length} total matches)`
       : `${all.length} matches`;
   const footer =
-    page < totalPages ? `\n--- /vcc-recall ${query} page:${page + 1} ---` : "";
+    page < totalPages ? `\n--- /recall ${query} page:${page + 1} ---` : "";
   return formatRecallOutput(pageResults, query, header) + footer;
 };
 
 /**
- * command.execute.before handler for /vcc-recall: run the search and rewrite
+ * command.execute.before handler for /recall: run the search and rewrite
  * the command's parts to a text part, so the result is fed to the agent as a
  * fresh turn (mirrors the upstream triggerTurn behavior).
  */
-export const createVccRecallCommandHook =
-  (deps: VccRecallCommandDeps) =>
+export const createRecallCommandHook =
+  (deps: RecallCommandDeps) =>
   async (
     input: { command: string; sessionID: string; arguments: string },
     output: { parts: unknown[] },
   ): Promise<void> => {
-    if (input.command !== VCC_RECALL_COMMAND) return;
+    if (input.command !== RECALL_COMMAND) return;
 
     const history = await deps.client.session.messages({
       path: { id: input.sessionID },

@@ -3,25 +3,18 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 export interface VccSettings {
-  /**
-   * When true, opencode-vcc handles ALL compactions. When false (default),
-   * it only handles its explicit command and defers to opencode core.
-   */
-  overrideDefaultCompaction: boolean;
   /** Write debug snapshots on each compaction. */
   debug: boolean;
 }
 
 export const DEFAULT_SETTINGS: VccSettings = {
-  overrideDefaultCompaction: false,
   debug: false,
 };
 
-const SETTINGS_KEYS = ["overrideDefaultCompaction", "debug"] as const;
+const SETTINGS_KEYS = ["debug"] as const;
 type SettingKey = (typeof SETTINGS_KEYS)[number];
 
 const ENV_PATH = "OPENCODE_VCC_CONFIG_PATH";
-const ENV_OVERRIDE = "OPENCODE_VCC_OVERRIDE_DEFAULT_COMPACTION";
 const ENV_DEBUG = "OPENCODE_VCC_DEBUG";
 
 /** Resolve the sidecar config path: env override, else the opencode config default. */
@@ -43,7 +36,7 @@ function readJson(path: string): Record<string, unknown> | null {
   }
 }
 
-/** Parse an env flag: "true"/"1" → true, "false"/"0" → false, anything else → undefined. */
+/** Parse an env flag: "true"/"1" -> true, "false"/"0" -> false, anything else -> undefined. */
 function parseEnvBool(raw: string | undefined): boolean | undefined {
   if (raw === undefined) return undefined;
   const v = raw.trim().toLowerCase();
@@ -79,7 +72,6 @@ export function loadSettings(options?: Record<string, unknown>): VccSettings {
 
   // Layer 3: env over everything.
   const envMap: Record<SettingKey, string | undefined> = {
-    overrideDefaultCompaction: process.env[ENV_OVERRIDE],
     debug: process.env[ENV_DEBUG],
   };
   for (const key of SETTINGS_KEYS) {
@@ -92,10 +84,10 @@ export function loadSettings(options?: Record<string, unknown>): VccSettings {
 
 /**
  * Ensure the sidecar config exists with default keys.
- * - File missing → create dir (recursive) + write DEFAULT_SETTINGS.
- * - File exists, invalid JSON → no-op (never clobber).
- * - File exists, valid → fill missing default keys, preserve existing values.
- * Never throws — all FS wrapped in try/catch.
+ * - File missing -> create dir (recursive) + write DEFAULT_SETTINGS.
+ * - File exists, invalid JSON -> no-op (never clobber).
+ * - File exists, valid -> fill missing default keys, preserve existing values.
+ * Never throws -- all FS wrapped in try/catch.
  */
 export function scaffoldSettings(): void {
   try {

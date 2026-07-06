@@ -8,11 +8,6 @@ import { VccPlugin } from "../src/index";
 const fakeClient = () => ({
   session: {
     messages: async () => ({ data: [] }),
-    summarize: async () => ({ data: true }),
-    prompt: async () => ({ data: {} }),
-  },
-  tui: {
-    showToast: async () => ({ data: true }),
   },
 });
 
@@ -40,14 +35,14 @@ afterEach(() => {
 });
 
 describe("VccPlugin entry", () => {
-  it("returns the expected hooks and the vcc_recall tool", async () => {
+  it("returns the expected hooks and the recall tool", async () => {
     const hooks = await VccPlugin(fakeInput(), {});
     expect(typeof hooks.config).toBe("function");
     expect(typeof hooks["command.execute.before"]).toBe("function");
     expect(typeof hooks["experimental.session.compacting"]).toBe("function");
     expect(typeof hooks["experimental.text.complete"]).toBe("function");
     expect(typeof hooks.event).toBe("function");
-    expect(hooks.tool?.vcc_recall).toBeDefined();
+    expect(hooks.tool?.recall).toBeDefined();
   });
 
   it("scaffolds the settings file on load", async () => {
@@ -55,30 +50,13 @@ describe("VccPlugin entry", () => {
     const path = join(cfgDir, "opencode-vcc.json");
     expect(existsSync(path)).toBe(true);
     const parsed = JSON.parse(readFileSync(path, "utf-8"));
-    expect(parsed).toHaveProperty("overrideDefaultCompaction");
     expect(parsed).toHaveProperty("debug");
   });
 
-  it("config hook registers both commands", async () => {
+  it("config hook registers the recall command", async () => {
     const hooks = await VccPlugin(fakeInput(), {});
     const config: { command?: Record<string, unknown> } = {};
     await hooks.config?.(config as never);
-    expect(config.command?.["vcc"]).toBeDefined();
-    expect(config.command?.["vcc-recall"]).toBeDefined();
-  });
-
-  it("threads plugin options into settings (overrideDefaultCompaction)", async () => {
-    // With override on, the compacting hook handles even without a pending request.
-    const hooks = await VccPlugin(fakeInput(), {
-      overrideDefaultCompaction: true,
-    });
-    const output: { context: string[]; prompt?: string } = { context: [] };
-    await hooks["experimental.session.compacting"]?.(
-      { sessionID: "s1" },
-      output,
-    );
-    // empty history → compile returns "" → no prompt set, but the hook ran
-    // without throwing, proving options were threaded (override path taken).
-    expect(output.prompt).toBeUndefined();
+    expect(config.command?.["recall"]).toBeDefined();
   });
 });

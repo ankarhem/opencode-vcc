@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import {
-  createVccRecallCommandHook,
+  createRecallCommandHook,
   buildRecallCommandOutput,
-  vccRecallCommandConfig,
-  VCC_RECALL_COMMAND,
-} from "../src/commands/vcc-recall";
+  recallCommandConfig,
+  RECALL_COMMAND,
+} from "../src/commands/recall";
 import type { HistoryEntry } from "../src/core/render-entries";
 
 const userEntry = (id: string, text: string): HistoryEntry => ({
@@ -17,16 +17,16 @@ const mkDeps = (messages: HistoryEntry[]) => ({
 });
 
 const runRecall = async (messages: HistoryEntry[], args: string) => {
-  const hook = createVccRecallCommandHook(mkDeps(messages));
+  const hook = createRecallCommandHook(mkDeps(messages));
   const output: { parts: unknown[] } = { parts: [] };
   await hook(
-    { command: VCC_RECALL_COMMAND, sessionID: "s1", arguments: args },
+    { command: RECALL_COMMAND, sessionID: "s1", arguments: args },
     output,
   );
   return output;
 };
 
-describe("/vcc-recall command hook", () => {
+describe("/recall command hook", () => {
   it("rewrites parts to a single text part with the recall output", async () => {
     const output = await runRecall(
       [
@@ -58,8 +58,8 @@ describe("/vcc-recall command hook", () => {
     expect(part.text).toContain("Page 2/2");
   });
 
-  it("ignores commands other than vcc-recall", async () => {
-    const hook = createVccRecallCommandHook(mkDeps([userEntry("u0", "hi")]));
+  it("ignores commands other than recall", async () => {
+    const hook = createRecallCommandHook(mkDeps([userEntry("u0", "hi")]));
     const output: { parts: unknown[] } = {
       parts: [{ type: "text", text: "x" }],
     };
@@ -76,6 +76,6 @@ describe("/vcc-recall command hook", () => {
   });
 
   it("config entry has a description", () => {
-    expect(vccRecallCommandConfig.description).toContain("Search");
+    expect(recallCommandConfig.description).toContain("Search");
   });
 });

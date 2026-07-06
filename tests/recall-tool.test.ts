@@ -1,13 +1,13 @@
 import { describe, it, expect } from "bun:test";
 import {
-  createVccRecallTool,
+  createRecallTool,
   invalidExpandIndices,
   type RecallToolDeps,
 } from "../src/tools/recall";
 import type { ToolContext, ToolResult } from "@opencode-ai/plugin";
 import type { HistoryEntry } from "../src/core/render-entries";
 
-// ── fixtures ──
+// -- fixtures --
 const userEntry = (id: string, text: string): HistoryEntry => ({
   info: { id, role: "user" },
   parts: [{ type: "text", text }],
@@ -44,9 +44,9 @@ const manyEntries = (count: number, prefix = "msg"): HistoryEntry[] => {
   return list;
 };
 
-describe("vcc_recall tool - browse mode", () => {
+describe("recall tool - browse mode", () => {
   it("returns the last 25 entries when no query/expand given", async () => {
-    const t = createVccRecallTool(mkDeps(manyEntries(30)));
+    const t = createRecallTool(mkDeps(manyEntries(30)));
     const r = out(await t.execute({}, mkCtx("s1")));
     expect(r).toContain("Session history (25 entries)");
     expect(r).toContain("msg-29");
@@ -55,7 +55,7 @@ describe("vcc_recall tool - browse mode", () => {
   });
 
   it("returns all entries when fewer than 25 exist", async () => {
-    const t = createVccRecallTool(
+    const t = createRecallTool(
       mkDeps([userEntry("u0", "alpha"), assistantEntry("a0", "beta")]),
     );
     const r = out(await t.execute({}, mkCtx("s1")));
@@ -64,15 +64,15 @@ describe("vcc_recall tool - browse mode", () => {
   });
 
   it("returns 'No entries' message for empty history", async () => {
-    const t = createVccRecallTool(mkDeps([]));
+    const t = createRecallTool(mkDeps([]));
     const r = out(await t.execute({}, mkCtx("s1")));
     expect(r).toContain("No entries in session history");
   });
 });
 
-describe("vcc_recall tool - search mode", () => {
+describe("recall tool - search mode", () => {
   it("returns matches with a count header for a single page", async () => {
-    const t = createVccRecallTool(
+    const t = createRecallTool(
       mkDeps([
         userEntry("u0", "fix the alpha bug"),
         assistantEntry("a0", "looking at alpha code"),
@@ -89,7 +89,7 @@ describe("vcc_recall tool - search mode", () => {
     for (let i = 0; i < 7; i++) {
       history.push(userEntry(`u${i}`, `alpha entry ${i}`));
     }
-    const t = createVccRecallTool(mkDeps(history));
+    const t = createRecallTool(mkDeps(history));
 
     const r1 = out(await t.execute({ query: "alpha", page: 1 }, mkCtx("s1")));
     expect(r1).toContain("Page 1/2 (7 total matches)");
@@ -105,7 +105,7 @@ describe("vcc_recall tool - search mode", () => {
     for (let i = 0; i < 7; i++) {
       history.push(userEntry(`u${i}`, `alpha entry ${i}`));
     }
-    const t = createVccRecallTool(mkDeps(history));
+    const t = createRecallTool(mkDeps(history));
     const r1 = out(await t.execute({ query: "alpha", page: 1 }, mkCtx("s1")));
     const r2 = out(await t.execute({ query: "alpha", page: 2 }, mkCtx("s1")));
     expect(r1).toContain("alpha entry 0");
@@ -113,13 +113,13 @@ describe("vcc_recall tool - search mode", () => {
   });
 
   it("returns no-match message when query has no hits", async () => {
-    const t = createVccRecallTool(mkDeps([userEntry("u0", "hello world")]));
+    const t = createRecallTool(mkDeps([userEntry("u0", "hello world")]));
     const r = out(await t.execute({ query: "zzznomatch" }, mkCtx("s1")));
     expect(r).toContain("No matches");
   });
 });
 
-describe("vcc_recall tool - expand mode", () => {
+describe("recall tool - expand mode", () => {
   const longOutput = "X".repeat(300) + "-FULL-DETAIL-END";
 
   it("returns full untruncated content for a valid expand index", async () => {
@@ -138,7 +138,7 @@ describe("vcc_recall tool - expand mode", () => {
         ],
       },
     ];
-    const t = createVccRecallTool(mkDeps(history));
+    const t = createRecallTool(mkDeps(history));
     const r = out(await t.execute({ expand: [1] }, mkCtx("s1")));
     expect(r).toContain("FULL-DETAIL-END");
   });
@@ -157,13 +157,13 @@ describe("vcc_recall tool - expand mode", () => {
         ],
       },
     ];
-    const t = createVccRecallTool(mkDeps(history));
+    const t = createRecallTool(mkDeps(history));
     const r = out(await t.execute({}, mkCtx("s1")));
     expect(r).not.toContain("FULL-DETAIL-END");
   });
 
   it("returns error text for an invalid expand index", async () => {
-    const t = createVccRecallTool(
+    const t = createRecallTool(
       mkDeps([userEntry("u0", "hi"), assistantEntry("a0", "yo")]),
     );
     const r = out(await t.execute({ expand: [99] }, mkCtx("s1")));
